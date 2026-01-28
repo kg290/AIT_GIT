@@ -1,0 +1,46 @@
+# Medical AI Gateway 2.0 - Requirements
+
+# Core Framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Google Cloud Vision for OCR
+google-cloud-vision>=3.4.0
+
+# Google Cloud Vertex AI for Gemini (uses service account, no API key needed)
+google-cloud-aiplatform>=1.50.0
+
+# PDF Processing
+PyMuPDF>=1.22.0  # fitz
+
+# Image Processing
+Pillow>=9.5.0
+
+# Date/Time Parsing
+python-dateutil>=2.8.0
+
+# HTTP Client
+httpx>=0.24.0
+aiofiles>=23.0.0
+
+# Optional: Neo4j for Knowledge Graph
+neo4j>=5.0.0
+
+# Optional: OpenAI for LLM features
+openai>=1.0.0
+
+# File upload handling
+python-multipart>=0.0.6
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# Development
+black>=23.0.0
+isort>=5.12.0
