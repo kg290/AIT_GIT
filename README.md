@@ -190,7 +190,7 @@ Environment variables (or `.env` file):
 
 ```env
 DATABASE_URL=sqlite:///./data/medical_gateway.db
-GOOGLE_CREDENTIALS_PATH=kg-hackathon-e3f03b59d928.json
+GOOGLE_CREDENTIALS_PATH=kg-hackathon.json
 USE_NEO4J=false
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
