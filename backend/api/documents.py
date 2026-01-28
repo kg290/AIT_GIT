@@ -1,18 +1,18 @@
 """
-Document API Routes - Production-ready for hospital use
+Document API Routes - Complete prescription processing endpoints
 """
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Form
 from fastapi.responses import JSONResponse
-from typing import Optional
+from typing import Optional, List
 import os
 import uuid
 import shutil
 from datetime import datetime
 
 from backend.config import settings
-from backend.services.simple_processor import SimpleDocumentProcessor
-from backend.services.prescription_extractor import PrescriptionExtractor
-from backend.services.drug_interaction_service import DrugInteractionService
+from backend.services.complete_processor import CompleteDocumentProcessor, complete_processor
+from backend.services.ai_extractor import AIExtractor
+from backend.services.drug_database import find_all_interactions, find_allergy_alerts
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -20,8 +20,8 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    patient_id: Optional[str] = Query(None, description="Patient ID for context"),
-    allergies: Optional[str] = Query(None, description="Comma-separated allergies")
+    patient_id: Optional[int] = Form(None, description="Patient ID for context"),
+    allergies: Optional[str] = Form(None, description="Comma-separated allergies")
 ):
     """
     Upload and process a prescription document
@@ -52,6 +52,7 @@ async def upload_document(
     file_path = settings.UPLOAD_DIR / f"{file_id}{file_ext}"
     
     try:
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     except Exception as e:
@@ -60,14 +61,15 @@ async def upload_document(
     # Parse allergies if provided
     patient_allergies = None
     if allergies:
-        patient_allergies = [a.strip() for a in allergies.split(',')]
+        patient_allergies = [a.strip() for a in allergies.split(',') if a.strip()]
     
-    # Process document
+    # Process document using complete processor
     try:
-        processor = SimpleDocumentProcessor()
-        result = processor.process(
+        result = complete_processor.process(
             file_path=str(file_path),
-            patient_allergies=patient_allergies
+            patient_allergies=patient_allergies,
+            patient_id=patient_id,
+            save_to_db=False  # Disable DB for now until schema is ready
         )
         
         response_data = result.to_dict()
@@ -84,15 +86,27 @@ async def upload_document(
 
 @router.post("/extract-text")
 async def extract_from_text(
-    text: str,
-    allergies: Optional[str] = Query(None, description="Comma-separated allergies")
+    text: str = Form(...),
+    allergies: Optional[str] = Form(None, description="Comma-separated allergies")
 ):
     """
     Extract prescription data from raw text (manual entry)
     """
     try:
-        extractor = PrescriptionExtractor()
+        # Parse allergies
+        patient_allergies = None
+        if allergies:
+            patient_allergies = [a.strip() for a in allergies.split(',') if a.strip()]
+        
+        # Use AI extractor
+        extractor = AIExtractor()
         extracted = extractor.extract(text)
+        
+        # Build medications list
+        medications = [
+            med.to_dict() if hasattr(med, 'to_dict') else med 
+            for med in extracted.medications
+        ]
         
         result = {
             'success': True,
@@ -105,20 +119,18 @@ async def extract_from_text(
             'clinic_name': extracted.clinic_name,
             'diagnosis': extracted.diagnosis,
             'vitals': extracted.vitals,
-            'medications': [med.to_dict() for med in extracted.medications],
+            'medications': medications,
             'advice': extracted.advice,
-            'follow_up': extracted.follow_up_date,
-            'confidence': extracted.extraction_confidence
+            'follow_up': extracted.follow_up,
+            'confidence': extracted.confidence,
+            'extraction_method': extracted.extraction_method
         }
         
         # Drug safety check
-        if extracted.medications:
-            drug_service = DrugInteractionService()
-            patient_allergies = [a.strip() for a in allergies.split(',')] if allergies else []
+        if medications:
+            med_names = [m.get('name', '') for m in medications if m.get('name')]
             
-            med_names = [m.name for m in extracted.medications if m.name]
-            safety = drug_service.analyze_safety(med_names, patient_allergies)
-            
+            interactions = find_all_interactions(med_names)
             result['drug_interactions'] = [
                 {
                     'drug1': i.drug1,
@@ -126,13 +138,104 @@ async def extract_from_text(
                     'severity': i.severity.value,
                     'description': i.description
                 }
-                for i in safety.interactions
+                for i in interactions
             ]
+            
+            if patient_allergies:
+                allergy_alerts = find_allergy_alerts(med_names, patient_allergies)
+                result['allergy_alerts'] = [
+                    {
+                        'drug': a.drug,
+                        'allergen': a.allergen,
+                        'cross_reactivity': a.cross_reactivity
+                    }
+                    for a in allergy_alerts
+                ]
         
         return JSONResponse(content=result)
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+
+@router.post("/check-interactions")
+async def check_drug_interactions(
+    medications: str = Form(..., description="Comma-separated list of medications"),
+    allergies: Optional[str] = Form(None, description="Comma-separated list of allergies")
+):
+    """
+    Check for drug interactions and allergy alerts
+    
+    Args:
+        medications: Comma-separated list of medication names
+        allergies: Optional comma-separated list of patient allergies
+    
+    Returns:
+        - drug_interactions: List of interactions found
+        - allergy_alerts: List of allergy alerts if allergies provided
+        - safe: Boolean indicating if the combination is safe
+    """
+    try:
+        # Parse medications
+        med_names = [m.strip() for m in medications.split(',') if m.strip()]
+        
+        if len(med_names) < 2:
+            return JSONResponse(content={
+                'success': True,
+                'drug_interactions': [],
+                'allergy_alerts': [],
+                'safe': True,
+                'message': 'At least 2 medications needed to check interactions'
+            })
+        
+        # Check interactions
+        interactions = find_all_interactions(med_names)
+        
+        result = {
+            'success': True,
+            'medications_checked': med_names,
+            'drug_interactions': [
+                {
+                    'drug1': i.drug1,
+                    'drug2': i.drug2,
+                    'severity': i.severity.value,
+                    'description': i.description,
+                    'mechanism': i.mechanism,
+                    'management': i.management
+                }
+                for i in interactions
+            ],
+            'allergy_alerts': []
+        }
+        
+        # Check allergies if provided
+        if allergies:
+            patient_allergies = [a.strip() for a in allergies.split(',') if a.strip()]
+            allergy_alerts = find_allergy_alerts(med_names, patient_allergies)
+            result['allergy_alerts'] = [
+                {
+                    'drug': a.drug,
+                    'allergen': a.allergen,
+                    'cross_reactivity': a.cross_reactivity,
+                    'alternatives': a.alternatives
+                }
+                for a in allergy_alerts
+            ]
+        
+        # Determine if safe
+        major_interactions = [i for i in interactions if i.severity.value in ['major', 'contraindicated']]
+        result['safe'] = len(major_interactions) == 0 and len(result['allergy_alerts']) == 0
+        result['interaction_count'] = len(interactions)
+        result['major_interaction_count'] = len(major_interactions)
+        
+        return JSONResponse(content=result)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Interaction check failed: {str(e)}")
 
 
 @router.get("/health")

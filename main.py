@@ -85,7 +85,12 @@ async def startup_event():
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """Serve the main frontend application"""
+    """Redirect to dashboard"""
+    dashboard_path = Path(__file__).parent / "frontend" / "dashboard.html"
+    if dashboard_path.exists():
+        return FileResponse(dashboard_path)
+    
+    # Fallback to index.html
     frontend_path = Path(__file__).parent / "frontend" / "index.html"
     if frontend_path.exists():
         return FileResponse(frontend_path)
@@ -152,7 +157,13 @@ async def dashboard():
     if dashboard_path.exists():
         return FileResponse(dashboard_path)
     
-    # Return inline dashboard if file doesn't exist
+    # Fallback to index.html
+    return FileResponse(Path(__file__).parent / "frontend" / "index.html")
+
+
+@app.get("/simple", response_class=HTMLResponse)
+async def simple_scanner():
+    """Serve the simple scanner page"""
     return FileResponse(Path(__file__).parent / "frontend" / "index.html")
 
 
