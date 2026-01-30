@@ -10,8 +10,9 @@ import io
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, File, UploadFile, HTTPException, Form
+from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Body
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from PIL import Image
 
 from backend.config import settings
@@ -19,6 +20,7 @@ from backend.services.complete_processor import complete_processor
 from backend.services.unified_patient_service import get_unified_patient_service
 from backend.services.clinical_decision_support_service import clinical_decision_support
 from backend.services.treatment_outcome_service import treatment_outcome_service, OutcomeType, VitalType
+from backend.services.neo4j_visualization_service import get_neo4j_visualization_service
 
 logger = logging.getLogger(__name__)
 
@@ -1656,4 +1658,775 @@ def _generate_cds_summary(report) -> Dict:
                 summary['action_items'].append(opt.get('recommendation', opt.get('title', '')))
     
     return summary
+
+
+# ==================== Knowledge Graph Endpoints ====================
+
+@router.get("/patient/{patient_uid}/knowledge-graph")
+async def get_patient_knowledge_graph(patient_uid: str):
+    """
+    Get interactive knowledge graph for a patient
+    
+    Returns vis.js compatible graph data with:
+    - Patient node (center)
+    - Medication nodes
+    - Condition nodes
+    - Allergy nodes
+    - Drug interaction nodes
+    - Relationships between all entities
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        # Get patient data
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get medications
+        medications = patient_service.get_patient_medications(patient_uid, active_only=True)
+        
+        # Get conditions
+        conditions = patient.get('conditions', [])
+        if isinstance(conditions, str):
+            conditions = [c.strip() for c in conditions.split(',') if c.strip()]
+        
+        # Get allergies
+        allergies = patient.get('allergies', [])
+        if isinstance(allergies, str):
+            allergies = [a.strip() for a in allergies.split(',') if a.strip()]
+        
+        # Get prescriptions with dates
+        prescriptions = patient_service.get_patient_prescriptions(patient_uid)
+        
+        # Get drug interactions if any
+        interactions = []
+        try:
+            from backend.services.drug_interaction_service import get_drug_interaction_service
+            interaction_service = get_drug_interaction_service()
+            drug_names = [m.get('name') or m.get('drug_name', '') for m in medications if m.get('name') or m.get('drug_name')]
+            if len(drug_names) >= 2:
+                interaction_result = interaction_service.check_interactions(drug_names)
+                interactions = interaction_result.get('interactions', [])
+        except Exception as e:
+            logger.warning(f"Could not check interactions: {e}")
+        
+        # Build knowledge graph
+        viz_service = get_neo4j_visualization_service()
+        graph_data = viz_service.build_patient_graph(
+            patient_uid=patient_uid,
+            patient_data={
+                'name': patient.get('name', 'Unknown'),
+                'age': patient.get('age') or 'N/A',
+                'gender': patient.get('gender') or 'N/A',
+                'blood_group': patient.get('blood_group') or 'N/A',
+            },
+            medications=medications,
+            conditions=conditions,
+            allergies=allergies,
+            interactions=interactions,
+            prescriptions=prescriptions,
+            include_drug_relationships=True
+        )
+        
+        # Also generate Cypher export for actual Neo4j import
+        cypher_export = viz_service.export_cypher(patient_uid)
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'patient_name': patient.get('name', 'Unknown'),
+            'graph': graph_data,
+            'cypher_export': cypher_export,
+            'neo4j_ready': True
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to build knowledge graph: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/demo")
+async def get_demo_knowledge_graph():
+    """
+    Get a demo knowledge graph to show visualization capabilities
+    """
+    viz_service = get_neo4j_visualization_service()
+    
+    # Create demo data
+    demo_medications = [
+        {'name': 'Metformin', 'dosage': '500mg', 'frequency': 'twice daily'},
+        {'name': 'Lisinopril', 'dosage': '10mg', 'frequency': 'once daily'},
+        {'name': 'Atorvastatin', 'dosage': '20mg', 'frequency': 'at bedtime'},
+        {'name': 'Aspirin', 'dosage': '81mg', 'frequency': 'once daily'},
+    ]
+    
+    demo_conditions = ['Type 2 Diabetes', 'Hypertension', 'Hyperlipidemia']
+    demo_allergies = ['Penicillin', 'Sulfa drugs']
+    demo_interactions = [
+        {
+            'drug1': 'Aspirin',
+            'drug2': 'Lisinopril',
+            'severity': 'moderate',
+            'description': 'May reduce antihypertensive effect'
+        }
+    ]
+    
+    graph_data = viz_service.build_patient_graph(
+        patient_uid='DEMO-001',
+        patient_data={
+            'name': 'Demo Patient',
+            'age': 65,
+            'gender': 'Male',
+            'blood_group': 'A+'
+        },
+        medications=demo_medications,
+        conditions=demo_conditions,
+        allergies=demo_allergies,
+        interactions=demo_interactions
+    )
+    
+    return JSONResponse(content={
+        'success': True,
+        'patient_uid': 'DEMO-001',
+        'patient_name': 'Demo Patient',
+        'graph': graph_data,
+        'is_demo': True
+    })
+
+
+# ==================== Timeline Endpoints ====================
+
+@router.get("/patient/{patient_uid}/timeline")
+async def get_patient_timeline_by_uid(patient_uid: str):
+    """
+    Get patient medical timeline events by UID
+    Returns prescriptions, medications, and events with dates
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        # Get patient
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get timeline events
+        timeline = patient_service.get_patient_timeline(patient_uid)
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'patient_name': patient.get('name', 'Unknown'),
+            'events': timeline
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get timeline: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/gantt")
+async def get_patient_gantt_by_uid(patient_uid: str):
+    """
+    Get Gantt chart data for medication timeline visualization
+    Returns medications with start/end dates for Gantt rendering
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        # Get patient
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get all medications (including inactive)
+        medications = patient_service.get_patient_medications(patient_uid, active_only=False)
+        
+        # Format for Gantt chart
+        gantt_data = []
+        for med in medications:
+            start_date = med.get('start_date', '')
+            end_date = med.get('end_date', '')
+            
+            # Format dates
+            start_display = 'Unknown'
+            end_display = 'Ongoing'
+            try:
+                if start_date:
+                    from dateutil import parser
+                    if isinstance(start_date, str):
+                        start_dt = parser.parse(start_date)
+                    else:
+                        start_dt = start_date
+                    start_display = start_dt.strftime('%d %b %Y')
+            except:
+                pass
+                
+            try:
+                if end_date:
+                    from dateutil import parser
+                    if isinstance(end_date, str):
+                        end_dt = parser.parse(end_date)
+                    else:
+                        end_dt = end_date
+                    end_display = end_dt.strftime('%d %b %Y')
+            except:
+                pass
+            
+            gantt_data.append({
+                'name': med.get('name', 'Unknown'),
+                'dosage': med.get('dosage', ''),
+                'frequency': med.get('frequency', ''),
+                'start': start_display,
+                'end': end_display,
+                'start_date': start_date,
+                'end_date': end_date,
+                'active': med.get('is_active', True),
+                'prescriber': med.get('prescriber', '')
+            })
+        
+        # Sort by start date (most recent first)
+        gantt_data.sort(key=lambda x: x.get('start_date') or '', reverse=True)
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'patient_name': patient.get('name', 'Unknown'),
+            'medications': gantt_data,
+            'total_medications': len(gantt_data),
+            'active_medications': sum(1 for m in gantt_data if m.get('active'))
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get gantt data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Patient Medical Data Management ====================
+
+class MedicalDataRequest(BaseModel):
+    """Request for adding medical data"""
+    name: str
+    category: Optional[str] = None
+    severity: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/patient/{patient_uid}/allergy")
+async def add_patient_allergy(patient_uid: str, data: MedicalDataRequest):
+    """Add an allergy to a patient's record"""
+    try:
+        service = get_unified_patient_service()
+        result = service.add_allergy(patient_uid, data.name)
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        # Create timeline event
+        _create_timeline_event(patient_uid, 'allergy_added', f"Allergy added: {data.name}")
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message')})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to add allergy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/patient/{patient_uid}/allergy/{allergy_name}")
+async def remove_patient_allergy(patient_uid: str, allergy_name: str):
+    """Remove an allergy from a patient's record"""
+    try:
+        service = get_unified_patient_service()
+        result = service.remove_allergy(patient_uid, allergy_name)
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message')})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to remove allergy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/patient/{patient_uid}/condition")
+async def add_patient_condition(patient_uid: str, data: MedicalDataRequest):
+    """Add a chronic condition to a patient's record"""
+    try:
+        service = get_unified_patient_service()
+        result = service.add_condition(patient_uid, data.name)
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        # Create timeline event
+        _create_timeline_event(patient_uid, 'condition_added', f"Condition diagnosed: {data.name}")
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message')})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to add condition: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/patient/{patient_uid}/condition/{condition_name}")
+async def remove_patient_condition(patient_uid: str, condition_name: str):
+    """Remove a condition from a patient's record"""
+    try:
+        service = get_unified_patient_service()
+        result = service.remove_condition(patient_uid, condition_name)
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message')})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to remove condition: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/patient/{patient_uid}/symptom")
+async def add_patient_symptom(patient_uid: str, data: MedicalDataRequest):
+    """Add a symptom to a patient's record"""
+    try:
+        service = get_unified_patient_service()
+        result = service.add_symptom(patient_uid, data.name, data.severity)
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message')})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to add symptom: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/patient/{patient_uid}/medication")
+async def add_patient_medication_manual(patient_uid: str, data: Dict[str, Any] = Body(...)):
+    """Manually add a medication to patient's record (not from prescription)"""
+    try:
+        service = get_unified_patient_service()
+        result = service.add_medication_manual(
+            patient_uid=patient_uid,
+            medication_name=data.get('name'),
+            dosage=data.get('dosage'),
+            frequency=data.get('frequency'),
+            prescriber=data.get('prescriber'),
+            reason=data.get('reason'),
+            start_date=data.get('start_date')
+        )
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message'), 'data': result})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to add medication: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/patient/{patient_uid}/medication/{medication_id}/stop")
+async def stop_patient_medication(patient_uid: str, medication_id: int, data: Dict[str, Any] = Body(...)):
+    """Stop/discontinue a medication"""
+    try:
+        service = get_unified_patient_service()
+        result = service.stop_medication(
+            patient_uid=patient_uid,
+            medication_id=medication_id,
+            reason=data.get('reason', 'Discontinued by physician')
+        )
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        return JSONResponse(content={'success': True, 'message': result.get('message')})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to stop medication: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/medical-summary")
+async def get_patient_medical_summary(patient_uid: str):
+    """Get complete medical summary for a patient including all relationships"""
+    try:
+        service = get_unified_patient_service()
+        
+        patient = service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        medications = service.get_patient_medications(patient_uid, active_only=False)
+        allergies = service.get_patient_allergies(patient_uid)
+        conditions = service.get_patient_conditions(patient_uid)
+        prescriptions = service.get_patient_prescriptions(patient_uid)
+        timeline = service.get_patient_timeline(patient_uid, limit=20)
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient': patient,
+            'medications': {
+                'active': [m for m in medications if m.get('is_active')],
+                'inactive': [m for m in medications if not m.get('is_active')],
+                'total': len(medications)
+            },
+            'allergies': allergies,
+            'conditions': conditions,
+            'prescriptions': prescriptions[:10],
+            'timeline': timeline,
+            'stats': {
+                'total_prescriptions': len(prescriptions),
+                'active_medications': sum(1 for m in medications if m.get('is_active')),
+                'allergies_count': len(allergies),
+                'conditions_count': len(conditions)
+            }
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get medical summary: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/patient/{patient_uid}/update")
+async def update_patient_info(patient_uid: str, data: Dict[str, Any] = Body(...)):
+    """Update patient basic information"""
+    try:
+        service = get_unified_patient_service()
+        result = service.update_patient(patient_uid, data)
+        
+        if result.get('error'):
+            raise HTTPException(status_code=400, detail=result['error'])
+        
+        return JSONResponse(content={'success': True, 'message': 'Patient updated successfully', 'patient': result})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update patient: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _create_timeline_event(patient_uid: str, event_type: str, description: str):
+    """Helper to create timeline events"""
+    try:
+        from backend.database import SessionLocal
+        from backend.database.models import Patient, TimelineEvent, AlertSeverity
+        from datetime import datetime
+        
+        session = SessionLocal()
+        patient = session.query(Patient).filter(Patient.patient_uid == patient_uid).first()
+        if patient:
+            event = TimelineEvent(
+                patient_id=patient.id,
+                event_type=event_type,
+                event_date=datetime.utcnow(),
+                description=description,
+                severity=AlertSeverity.INFO
+            )
+            session.add(event)
+            session.commit()
+        session.close()
+    except Exception as e:
+        logger.warning(f"Failed to create timeline event: {e}")
+
+
+# ==================== Real-Time Drug Safety Check ====================
+
+class DrugCheckRequest(BaseModel):
+    drug_name: str
+    patient_allergies: List[str] = []
+    patient_conditions: List[str] = []
+    current_medications: List[str] = []
+
+
+@router.post("/check-drug-safety")
+async def check_drug_safety(request: DrugCheckRequest):
+    """
+    Real-time drug safety check - call when doctor adds a drug to prescription.
+    Checks for:
+    - Allergy conflicts (direct and cross-reactivity)
+    - Drug-drug interactions with current medications
+    - Drug-condition contraindications
+    - Duplicate therapy
+    
+    Returns immediate alerts for the doctor.
+    """
+    try:
+        from backend.services.drug_interaction_service import DrugInteractionService, InteractionSeverity
+        
+        service = DrugInteractionService()
+        
+        # Combine new drug with current medications for analysis
+        all_meds = request.current_medications + [request.drug_name]
+        
+        # Analyze safety
+        result = service.analyze_safety(
+            medications=all_meds,
+            patient_allergies=request.patient_allergies,
+            patient_conditions=request.patient_conditions,
+            suppress_low_value=False  # Show all alerts for real-time check
+        )
+        
+        alerts = []
+        
+        # Check allergy alerts - these are CRITICAL
+        for alert in result.allergy_alerts:
+            if alert.drug.lower() == request.drug_name.lower() or request.drug_name.lower() in alert.drug.lower():
+                alerts.append({
+                    "type": "ALLERGY",
+                    "severity": "CRITICAL",
+                    "icon": "🚨",
+                    "title": f"ALLERGY ALERT: {alert.allergen}",
+                    "message": alert.description,
+                    "risk_type": alert.risk_type,
+                    "alternatives": alert.alternatives[:3] if alert.alternatives else [],
+                    "action": "DO NOT PRESCRIBE without patient consent and monitoring"
+                })
+        
+        # Check drug interactions - only for the new drug
+        for interaction in result.interactions:
+            if request.drug_name.lower() in interaction.drug1.lower() or request.drug_name.lower() in interaction.drug2.lower():
+                severity_map = {
+                    InteractionSeverity.CONTRAINDICATED: ("CRITICAL", "🚨"),
+                    InteractionSeverity.MAJOR: ("HIGH", "⚠️"),
+                    InteractionSeverity.MODERATE: ("MODERATE", "⚡"),
+                    InteractionSeverity.MINOR: ("LOW", "ℹ️")
+                }
+                sev_label, icon = severity_map.get(interaction.severity, ("MODERATE", "⚡"))
+                
+                other_drug = interaction.drug2 if request.drug_name.lower() in interaction.drug1.lower() else interaction.drug1
+                
+                alerts.append({
+                    "type": "INTERACTION",
+                    "severity": sev_label,
+                    "icon": icon,
+                    "title": f"Interaction with {other_drug}",
+                    "message": interaction.description,
+                    "mechanism": interaction.mechanism,
+                    "clinical_effects": interaction.clinical_effects,
+                    "action": interaction.management
+                })
+        
+        # Check contraindications
+        for contra in result.contraindications:
+            if request.drug_name.lower() in contra.get('drug', '').lower():
+                alerts.append({
+                    "type": "CONTRAINDICATION",
+                    "severity": "HIGH" if contra.get('level') == 'contraindicated' else "MODERATE",
+                    "icon": "🚫" if contra.get('level') == 'contraindicated' else "⚠️",
+                    "title": f"Contraindicated: {contra.get('condition', 'Unknown condition')}",
+                    "message": contra.get('description', ''),
+                    "action": contra.get('recommendation', 'Use with caution or avoid')
+                })
+        
+        # Check duplicate therapy
+        for dup in result.duplicate_therapies:
+            if request.drug_name.lower() in ' '.join(dup.drugs).lower():
+                alerts.append({
+                    "type": "DUPLICATE",
+                    "severity": "MODERATE",
+                    "icon": "🔄",
+                    "title": f"Duplicate: {dup.drug_class}",
+                    "message": dup.description,
+                    "action": dup.recommendation
+                })
+        
+        # Sort by severity
+        severity_order = {"CRITICAL": 0, "HIGH": 1, "MODERATE": 2, "LOW": 3}
+        alerts.sort(key=lambda x: severity_order.get(x["severity"], 99))
+        
+        return {
+            "success": True,
+            "drug": request.drug_name,
+            "is_safe": len([a for a in alerts if a["severity"] in ["CRITICAL", "HIGH"]]) == 0,
+            "alerts_count": len(alerts),
+            "critical_count": len([a for a in alerts if a["severity"] == "CRITICAL"]),
+            "high_count": len([a for a in alerts if a["severity"] == "HIGH"]),
+            "alerts": alerts,
+            "overall_risk": result.overall_risk_level
+        }
+        
+    except Exception as e:
+        logger.error(f"Drug safety check error: {e}")
+        return {
+            "success": False,
+            "drug": request.drug_name,
+            "is_safe": True,  # Default to safe if check fails
+            "alerts_count": 0,
+            "alerts": [],
+            "error": str(e)
+        }
+
+
+@router.get("/patient/{patient_uid}/safety-summary")
+async def get_patient_safety_summary(patient_uid: str):
+    """
+    Get comprehensive patient safety summary for doctor's quick view.
+    Includes:
+    - Critical allergies (with severity)
+    - Active conditions affecting prescribing
+    - Current medications with drug classes
+    - Recent safety alerts
+    """
+    try:
+        service = get_unified_patient_service()
+        patient = await service.get_patient_by_uid(patient_uid)
+        
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        
+        # Categorize allergies by severity
+        critical_allergies = []
+        other_allergies = []
+        
+        allergy_severity_keywords = {
+            'critical': ['penicillin', 'sulfa', 'latex', 'iodine', 'contrast', 'shellfish', 'peanut', 'bee', 'wasp'],
+            'high': ['aspirin', 'nsaid', 'codeine', 'morphine', 'cephalosporin']
+        }
+        
+        for allergy in (patient.get('allergies') or []):
+            allergy_lower = allergy.lower()
+            is_critical = any(kw in allergy_lower for kw in allergy_severity_keywords['critical'])
+            is_high = any(kw in allergy_lower for kw in allergy_severity_keywords['high'])
+            
+            if is_critical:
+                critical_allergies.append({
+                    "name": allergy,
+                    "severity": "CRITICAL",
+                    "cross_reactivity": _get_cross_reactivity(allergy)
+                })
+            elif is_high:
+                critical_allergies.append({
+                    "name": allergy,
+                    "severity": "HIGH",
+                    "cross_reactivity": _get_cross_reactivity(allergy)
+                })
+            else:
+                other_allergies.append({
+                    "name": allergy,
+                    "severity": "STANDARD",
+                    "cross_reactivity": []
+                })
+        
+        # Categorize conditions by prescribing impact
+        high_impact_conditions = []
+        other_conditions = []
+        
+        condition_impact_keywords = {
+            'kidney': 'Affects dosing of many drugs',
+            'renal': 'Affects dosing of many drugs',
+            'liver': 'Affects drug metabolism',
+            'hepatic': 'Affects drug metabolism',
+            'heart': 'Avoid NSAIDs, some calcium channel blockers',
+            'cardiac': 'Avoid NSAIDs, some calcium channel blockers',
+            'pregnant': 'Many drugs contraindicated',
+            'pregnancy': 'Many drugs contraindicated',
+            'asthma': 'Avoid beta-blockers',
+            'diabetes': 'Monitor with steroids, some antibiotics',
+            'bleeding': 'Avoid anticoagulants, NSAIDs',
+            'ulcer': 'Avoid NSAIDs, steroids'
+        }
+        
+        for condition in (patient.get('chronic_conditions') or []):
+            condition_lower = condition.lower()
+            impact = None
+            for kw, desc in condition_impact_keywords.items():
+                if kw in condition_lower:
+                    impact = desc
+                    break
+            
+            if impact:
+                high_impact_conditions.append({
+                    "name": condition,
+                    "impact": impact,
+                    "level": "HIGH"
+                })
+            else:
+                other_conditions.append({
+                    "name": condition,
+                    "impact": None,
+                    "level": "STANDARD"
+                })
+        
+        # Get current medications with drug classes
+        from backend.services.drug_normalization_service import DrugNormalizationService
+        normalizer = DrugNormalizationService()
+        
+        current_meds_detailed = []
+        for med in (patient.get('current_medications') or []):
+            med_name = med.get('name', med) if isinstance(med, dict) else med
+            norm = normalizer.normalize(med_name)
+            current_meds_detailed.append({
+                "name": med_name,
+                "generic": norm.generic_name if norm else med_name,
+                "class": norm.drug_class if norm else 'Unknown',
+                "dosage": med.get('dosage', '') if isinstance(med, dict) else '',
+                "frequency": med.get('frequency', '') if isinstance(med, dict) else ''
+            })
+        
+        return {
+            "success": True,
+            "patient": {
+                "uid": patient_uid,
+                "name": patient.get('name'),
+                "age": patient.get('age'),
+                "gender": patient.get('gender'),
+                "blood_group": patient.get('blood_group'),
+                "weight_kg": patient.get('weight_kg'),
+                "height_cm": patient.get('height_cm')
+            },
+            "allergies": {
+                "critical": critical_allergies,
+                "other": other_allergies,
+                "total": len(critical_allergies) + len(other_allergies)
+            },
+            "conditions": {
+                "high_impact": high_impact_conditions,
+                "other": other_conditions,
+                "total": len(high_impact_conditions) + len(other_conditions)
+            },
+            "current_medications": current_meds_detailed,
+            "warnings_count": len(critical_allergies) + len(high_impact_conditions)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Safety summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _get_cross_reactivity(allergy: str) -> List[str]:
+    """Get cross-reactive drugs for an allergy"""
+    cross_map = {
+        'penicillin': ['Amoxicillin', 'Ampicillin', 'Piperacillin', 'Cephalosporins (10% risk)'],
+        'sulfa': ['Sulfamethoxazole', 'Sulfasalazine', 'Some diuretics'],
+        'aspirin': ['Ibuprofen', 'Naproxen', 'Diclofenac', 'All NSAIDs'],
+        'cephalosporin': ['Cefixime', 'Ceftriaxone', 'Penicillins (low risk)'],
+        'codeine': ['Morphine', 'Tramadol', 'Hydrocodone'],
+        'latex': ['Banana', 'Avocado', 'Kiwi (food cross-reactivity)']
+    }
+    
+    for key, drugs in cross_map.items():
+        if key in allergy.lower():
+            return drugs
+    return []
+
 

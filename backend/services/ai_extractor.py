@@ -68,6 +68,8 @@ class PrescriptionData:
     
     # Prescription
     prescription_date: Optional[str] = None
+    prescription_time: Optional[str] = None
+    scan_timestamp: Optional[str] = None  # When the prescription was scanned/uploaded
     
     # Clinical
     diagnosis: List[str] = field(default_factory=list)
@@ -216,7 +218,8 @@ Return this exact JSON structure:
     "doctor_reg_no": "string or null - license/registration numbers",
     "clinic_name": "string or null - hospital/clinic name",
     "clinic_address": "string or null",
-    "prescription_date": "YYYY-MM-DD or original format or null",
+    "prescription_date": "CRITICAL: Extract the date from the prescription. Look for 'Date:', 'Dt:', 'Dated:', or standalone dates. Format as YYYY-MM-DD. Common formats: DD/MM/YYYY, DD-MM-YYYY, DD MMM YYYY (e.g., 31 Jan 2026). Return null ONLY if absolutely no date is visible.",
+    "prescription_time": "Time if visible on prescription (e.g., 10:30 AM) or null",
     "diagnosis": ["array of medical diagnoses ONLY - not names or addresses"],
     "vitals": {{"bp": "120/80", "temp": "98.6F", etc}},
     "medications": [
@@ -264,6 +267,19 @@ REMEMBER:
             # Extract UHID - prioritize patient_uhid, fallback to patient_id
             patient_id = data.get('patient_uhid') or data.get('patient_id')
             
+            # Get current timestamp for scan time
+            from datetime import datetime
+            scan_timestamp = datetime.utcnow().isoformat()
+            
+            # Build prescription date with time if available
+            prescription_date = data.get('prescription_date')
+            prescription_time = data.get('prescription_time')
+            
+            # If we have both date and time, combine them
+            if prescription_date and prescription_time:
+                # Try to combine date and time into a full datetime string
+                prescription_date = f"{prescription_date} {prescription_time}"
+            
             # Convert to PrescriptionData with all fields
             result = PrescriptionData(
                 patient_name=data.get('patient_name'),
@@ -277,7 +293,9 @@ REMEMBER:
                 doctor_reg_no=data.get('doctor_reg_no'),
                 clinic_name=data.get('clinic_name'),
                 clinic_address=data.get('clinic_address'),
-                prescription_date=data.get('prescription_date'),
+                prescription_date=prescription_date,
+                prescription_time=prescription_time,
+                scan_timestamp=scan_timestamp,
                 diagnosis=data.get('diagnosis', []),
                 vitals=data.get('vitals', {}),
                 advice=data.get('advice', []),
@@ -490,17 +508,30 @@ REMEMBER:
         return ', '.join(quals) if quals else None
     
     def _find_date(self, text: str) -> Optional[str]:
-        """Find prescription date"""
+        """Find prescription date with comprehensive pattern matching"""
+        # Patterns ordered by specificity - most specific first
         patterns = [
-            r'(?:date)\s*[:\-]?\s*(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})',
-            r'(?:date)\s*[:\-]?\s*(\d{1,2}[-/\s]*[A-Za-z]{3,9}[-/\s]*\d{2,4})',
-            r'(\d{1,2}[-/][A-Za-z]{3}[-/]\d{4})',
+            # Date with explicit label (Date:, Dt:, Dated:)
+            r'(?:date|dt|dated)\s*[:\-]?\s*(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})',
+            r'(?:date|dt|dated)\s*[:\-]?\s*(\d{1,2}[-/\s]*[A-Za-z]{3,9}[-/,\s]*\d{2,4})',
+            # DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+            r'(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{4})',
+            r'(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2})',
+            # DD MMM YYYY (e.g., 31 Jan 2026, 31-Jan-2026)
+            r'(\d{1,2}[-/\s]*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-/,\s]*\d{2,4})',
+            # MMM DD, YYYY (e.g., Jan 31, 2026)
+            r'((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-/\s]*\d{1,2}[-/,\s]*\d{2,4})',
+            # YYYY-MM-DD (ISO format)
+            r'(\d{4}[-/]\d{1,2}[-/]\d{1,2})',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return match.group(1).strip()
+                date_str = match.group(1).strip()
+                # Validate it looks like a reasonable date
+                if len(date_str) >= 6:  # At least DD/MM/YY
+                    return date_str
         return None
     
     def _find_vitals(self, text: str) -> Dict[str, str]:

@@ -46,6 +46,8 @@ class ProcessingResult:
     
     # Prescription Info
     prescription_date: Optional[str] = None
+    prescription_time: Optional[str] = None
+    scan_timestamp: Optional[str] = None  # When prescription was scanned/uploaded
     
     # Clinical Data
     diagnosis: List[str] = field(default_factory=list)
@@ -169,7 +171,10 @@ class CompleteDocumentProcessor:
             result.clinic_name = extracted.clinic_name
             result.doctor_reg_no = getattr(extracted, 'doctor_reg_no', None)
             
+            # Prescription date and time
             result.prescription_date = extracted.prescription_date
+            result.prescription_time = getattr(extracted, 'prescription_time', None)
+            result.scan_timestamp = getattr(extracted, 'scan_timestamp', None) or datetime.utcnow().isoformat()
             
             result.diagnosis = extracted.diagnosis
             result.chief_complaints = extracted.chief_complaints

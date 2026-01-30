@@ -6,6 +6,8 @@
     <title>Medical AI Gateway 2.0 | Hospital Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Vis.js for Interactive Knowledge Graph -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -854,6 +856,131 @@
         .alert-content p {
             font-size: 0.8125rem;
             color: var(--gray-600);
+        }
+
+        /* Allergy & Condition Badges */
+        .allergy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 0.15rem;
+        }
+        
+        .allergy-badge.critical {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            color: #dc2626;
+            border: 2px solid #ef4444;
+            animation: pulse 2s infinite;
+        }
+        
+        .allergy-badge.high {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            color: #ea580c;
+            border: 1px solid #f97316;
+        }
+        
+        .allergy-badge.standard {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+        
+        .condition-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin: 0.15rem;
+        }
+        
+        .condition-badge.high-impact {
+            background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+            color: #7c3aed;
+            border: 1px solid #a78bfa;
+        }
+        
+        .condition-badge.standard {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+        }
+        
+        /* Drug Safety Alert Popup */
+        .drug-safety-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 400px;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .safety-alert-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .safety-alert-card.critical {
+            border-left: 5px solid #dc2626;
+        }
+        
+        .safety-alert-card.high {
+            border-left: 5px solid #f97316;
+        }
+        
+        .safety-alert-card.moderate {
+            border-left: 5px solid #eab308;
+        }
+        
+        .safety-alert-header {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .safety-alert-header.critical {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            color: #dc2626;
+        }
+        
+        .safety-alert-header.high {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            color: #ea580c;
+        }
+        
+        .safety-alert-header.moderate {
+            background: linear-gradient(135deg, #fefce8, #fef9c3);
+            color: #ca8a04;
+        }
+        
+        .safety-alert-body {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .safety-alert-action {
+            padding: 0.5rem 1rem;
+            background: var(--gray-50);
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            border-top: 1px solid var(--gray-100);
         }
 
         /* Prescription Details */
@@ -2095,7 +2222,7 @@
                             <span class="card-title"><i class="fas fa-user"></i> Patient Information</span>
                         </div>
                         <div class="card-body">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                                 <div>
                                     <label style="font-size: 0.75rem; color: var(--gray-500);">Patient ID</label>
                                     <p id="detailPatientId" style="font-weight: 500;">-</p>
@@ -2105,15 +2232,32 @@
                                     <p id="detailAgeGender" style="font-weight: 500;">-</p>
                                 </div>
                                 <div>
-                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Known Allergies</label>
-                                    <p id="detailAllergies" style="font-weight: 500;">None recorded</p>
-                                </div>
-                                <div>
-                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Chronic Conditions</label>
-                                    <p id="detailConditions" style="font-weight: 500;">None recorded</p>
+                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Blood Group</label>
+                                    <p id="detailBloodGroup" style="font-weight: 600; color: #dc2626;">-</p>
                                 </div>
                             </div>
-                            <div style="margin-top: 1rem;">
+                            
+                            <!-- Critical Allergies Section -->
+                            <div id="allergiesSection" style="margin-bottom: 1rem;">
+                                <label style="font-size: 0.75rem; color: var(--gray-500); display: block; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i> Known Allergies
+                                </label>
+                                <div id="detailAllergiesContainer">
+                                    <span style="color: var(--gray-400); font-size: 0.875rem;">None recorded</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Chronic Conditions Section -->
+                            <div id="conditionsSection" style="margin-bottom: 1rem;">
+                                <label style="font-size: 0.75rem; color: var(--gray-500); display: block; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-heart" style="color: #7c3aed;"></i> Chronic Conditions
+                                </label>
+                                <div id="detailConditionsContainer">
+                                    <span style="color: var(--gray-400); font-size: 0.875rem;">None recorded</span>
+                                </div>
+                            </div>
+                            
+                            <div>
                                 <label style="font-size: 0.75rem; color: var(--gray-500);">Treating Doctors</label>
                                 <p id="detailDoctors" style="font-weight: 500;">-</p>
                             </div>
@@ -2995,8 +3139,8 @@ Aspirin, 75mg, once daily"></textarea>
                     <div class="card-body">
                         <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
                             <div style="flex: 1;">
-                                <label class="form-label">Patient ID</label>
-                                <input type="number" class="form-input" id="timelinePatientId" placeholder="Enter patient ID">
+                                <label class="form-label">Patient UID</label>
+                                <input type="text" class="form-input" id="timelinePatientUid" placeholder="Enter patient UID (e.g., PT20260131-XXXX)" style="font-family: monospace;">
                             </div>
                             <button class="btn btn-primary" onclick="loadTimeline()">
                                 <i class="fas fa-search"></i> Load Timeline
@@ -3026,50 +3170,81 @@ Aspirin, 75mg, once daily"></textarea>
                 </div>
             </section>
 
-            <!-- Knowledge Graph Page -->
+            <!-- Knowledge Graph Page - Clean Visual Layout -->
             <section class="page-section" id="page-knowledge-graph">
+                <!-- Header Card -->
+                <div class="card" style="background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%); border: none; color: white; margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
+                                🔗
+                            </div>
+                            <div>
+                                <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.25rem;">Patient Knowledge Graph</h2>
+                                <p style="opacity: 0.9; font-size: 0.9rem;">Visual relationships: Patient ↔ Medications ↔ Conditions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Selection -->
                 <div class="card">
                     <div class="card-header">
-                        <span class="card-title"><i class="fas fa-project-diagram" style="margin-right: 0.5rem;"></i>Knowledge Graph</span>
+                        <span class="card-title"><i class="fas fa-search" style="margin-right: 0.5rem;"></i>Load Patient Graph</span>
                     </div>
                     <div class="card-body">
-                        <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
-                            <div style="flex: 1;">
-                                <label class="form-label">Patient ID</label>
-                                <input type="number" class="form-input" id="graphPatientId" placeholder="Enter patient ID">
+                        <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label class="form-label">Patient UID</label>
+                                <input type="text" class="form-input" id="kgPatientUid" placeholder="PT20260131-XXXX" style="font-family: monospace; font-size: 1rem;">
                             </div>
-                            <button class="btn btn-primary" onclick="loadKnowledgeGraph()">
-                                <i class="fas fa-search"></i> Load Graph
+                            <button class="btn btn-primary" onclick="loadPatientKnowledgeGraph()" style="height: 44px;">
+                                <i class="fas fa-project-diagram"></i> Build Graph
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadDemoKnowledgeGraph()" style="height: 44px;">
+                                <i class="fas fa-eye"></i> View Demo
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="card" id="graphResults" style="display: none;">
-                    <div class="card-header">
-                        <span class="card-title">Patient Knowledge Graph</span>
-                        <div id="graphStats" style="font-size: 0.875rem; color: var(--gray-500);"></div>
+                <!-- Knowledge Graph Visualization -->
+                <div class="card" id="kgGraphCard" style="display: none;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">
+                        <span class="card-title">
+                            <i class="fas fa-sitemap" style="margin-right: 0.5rem; color: #7c3aed;"></i>
+                            <span id="kgPatientName">Knowledge Graph</span>
+                        </span>
+                        <span id="kgStats" class="badge badge-info"></span>
                     </div>
-                    <div class="card-body">
-                        <div id="knowledgeGraphContainer" style="min-height: 400px; background: var(--gray-50); border-radius: 8px;">
-                            <!-- Graph will be rendered here -->
-                        </div>
-                        <div id="graphLegend" style="margin-top: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                    <div class="card-body" id="kgGraphContent" style="padding: 2rem; background: #f8fafc; min-height: 500px;">
+                        <!-- Graph will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="card" id="kgLegendCard" style="display: none;">
+                    <div class="card-body" style="padding: 1rem 1.5rem;">
+                        <div style="display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="width: 16px; height: 16px; background: #3b82f6; border-radius: 50%;"></span>
-                                <span>Patient</span>
+                                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 6px;"></div>
+                                <span style="font-size: 0.85rem; font-weight: 500;">Patient</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="width: 16px; height: 16px; background: #10b981; border-radius: 50%;"></span>
-                                <span>Medication</span>
+                                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 6px;"></div>
+                                <span style="font-size: 0.85rem; font-weight: 500;">Medication</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="width: 16px; height: 16px; background: #f59e0b; border-radius: 50%;"></span>
-                                <span>Condition</span>
+                                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 6px;"></div>
+                                <span style="font-size: 0.85rem; font-weight: 500;">Condition</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="width: 16px; height: 16px; background: #ef4444; border-radius: 50%;"></span>
-                                <span>Symptom</span>
+                                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 6px;"></div>
+                                <span style="font-size: 0.85rem; font-weight: 500;">Allergy</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, #ec4899, #be185d); border-radius: 6px;"></div>
+                                <span style="font-size: 0.85rem; font-weight: 500;">Drug Interaction</span>
                             </div>
                         </div>
                     </div>
@@ -4443,16 +4618,19 @@ Aspirin, 81mg, once daily"></textarea>
                 document.getElementById('detailRiskCard').style.background = riskLevel === 'HIGH' ? 
                     'linear-gradient(135deg, #fef2f2, #fee2e2)' : 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
                 
-                // Patient info
+                // Patient basic info
                 document.getElementById('detailPatientId').textContent = summary.patient.patient_id;
                 document.getElementById('detailAgeGender').textContent = 
                     `${summary.patient.age || 'Unknown'} / ${summary.patient.gender || 'Unknown'}`;
-                document.getElementById('detailAllergies').textContent = 
-                    summary.patient.allergies?.length ? summary.patient.allergies.join(', ') : 'None recorded';
-                document.getElementById('detailConditions').textContent = 
-                    summary.patient.chronic_conditions?.length ? summary.patient.chronic_conditions.join(', ') : 'None recorded';
+                document.getElementById('detailBloodGroup').textContent = summary.patient.blood_group || '-';
                 document.getElementById('detailDoctors').textContent = 
                     summary.all_doctors?.length ? summary.all_doctors.join(', ') : '-';
+                
+                // Render allergies with color-coded badges
+                renderAllergyBadges(summary.patient.allergies || []);
+                
+                // Render conditions with color-coded badges
+                renderConditionBadges(summary.patient.chronic_conditions || []);
                 
                 // Safety alerts
                 const alertsCard = document.getElementById('safetyAlertsCard');
@@ -5277,27 +5455,32 @@ Aspirin, 81mg, once daily"></textarea>
 
         // Timeline Functions
         async function loadTimeline() {
-            const patientId = document.getElementById('timelinePatientId').value;
-            if (!patientId) {
-                alert('Please enter a patient ID');
+            const patientUid = document.getElementById('timelinePatientUid').value.trim();
+            if (!patientUid) {
+                alert('Please enter a patient UID');
                 return;
             }
 
             try {
-                // Load Gantt data
-                const ganttResponse = await fetch(`${API_V2_BASE}/temporal/patient/${patientId}/gantt`);
+                // Load Gantt data from staff API
+                const ganttResponse = await fetch(`${STAFF_API}/patient/${patientUid}/gantt`);
                 const ganttData = await ganttResponse.json();
                 
-                // Load timeline events
-                const eventsResponse = await fetch(`${API_V2_BASE}/temporal/patient/${patientId}/timeline`);
+                if (!ganttData.success) {
+                    throw new Error(ganttData.detail || 'Failed to load gantt data');
+                }
+                
+                // Load timeline events from staff API
+                const eventsResponse = await fetch(`${STAFF_API}/patient/${patientUid}/timeline`);
                 const eventsData = await eventsResponse.json();
 
                 document.getElementById('timelineResults').style.display = 'block';
                 document.getElementById('timelineEventsCard').style.display = 'block';
 
                 renderGanttChart(ganttData);
-                renderTimelineEvents(eventsData.events);
+                renderTimelineEvents(eventsData.events || []);
             } catch (error) {
+                console.error('Timeline error:', error);
                 alert('Error loading timeline: ' + error.message);
             }
         }
@@ -5309,19 +5492,37 @@ Aspirin, 81mg, once daily"></textarea>
                 return;
             }
 
-            let html = '<div style="overflow-x: auto;">';
+            // Summary header
+            let html = `
+                <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 8px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">${data.active_medications || 0}</div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">Active Medications</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #6b7280;">${data.total_medications || 0}</div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">Total Medications</div>
+                    </div>
+                </div>
+            `;
+            
+            html += '<div style="overflow-x: auto;">';
             data.medications.forEach(med => {
                 const isActive = med.active;
                 html += `
-                    <div style="display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
-                        <div style="width: 150px; font-weight: 500; font-size: 0.875rem;">${med.name}</div>
-                        <div style="flex: 1; background: var(--gray-100); height: 24px; border-radius: 4px; position: relative; margin: 0 1rem;">
-                            <div style="position: absolute; left: 0; height: 100%; background: ${isActive ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--gray-400)'}; border-radius: 4px; width: 80%;"></div>
+                    <div style="display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100);">
+                        <div style="width: 180px;">
+                            <div style="font-weight: 600; font-size: 0.9rem;">${med.name}</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500);">${med.dosage || ''} ${med.frequency ? '• ' + med.frequency : ''}</div>
                         </div>
-                        <div style="width: 100px; font-size: 0.75rem; color: var(--gray-500);">
-                            ${med.start || 'N/A'}
+                        <div style="flex: 1; background: var(--gray-100); height: 28px; border-radius: 6px; position: relative; margin: 0 1rem; display: flex; align-items: center; padding: 0 10px;">
+                            <div style="position: absolute; left: 0; height: 100%; background: ${isActive ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #9ca3af, #6b7280)'}; border-radius: 6px; width: ${isActive ? '100%' : '60%'}; opacity: 0.9;"></div>
+                            <span style="position: relative; z-index: 1; font-size: 0.7rem; color: white; font-weight: 500;">${med.start} → ${med.end}</span>
                         </div>
-                        <span class="badge ${isActive ? 'badge-success' : 'badge-gray'}">${isActive ? 'Active' : 'Stopped'}</span>
+                        <div style="width: 120px; font-size: 0.75rem; color: var(--gray-500); text-align: right; padding-right: 0.5rem;">
+                            ${med.prescriber ? 'Dr. ' + med.prescriber : ''}
+                        </div>
+                        <span class="badge ${isActive ? 'badge-success' : 'badge-gray'}" style="min-width: 60px; text-align: center;">${isActive ? 'Active' : 'Stopped'}</span>
                     </div>
                 `;
             });
@@ -5332,101 +5533,333 @@ Aspirin, 81mg, once daily"></textarea>
         function renderTimelineEvents(events) {
             const container = document.getElementById('timelineEvents');
             if (!events || events.length === 0) {
-                container.innerHTML = '<div class="empty-state">No timeline events</div>';
+                container.innerHTML = '<div class="empty-state" style="padding: 2rem; text-align: center; color: var(--gray-500);"><i class="fas fa-calendar-alt" style="font-size: 2rem; margin-bottom: 0.5rem;"></i><p>No timeline events yet</p></div>';
                 return;
             }
-
-            container.innerHTML = events.slice(0, 20).map(event => `
-                <div style="display: flex; padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-100);">
-                    <div style="width: 100px; font-size: 0.75rem; color: var(--gray-500);">${event.date}</div>
-                    <div style="flex: 1;">
-                        <span class="badge badge-info" style="margin-right: 0.5rem;">${event.type}</span>
-                        <span style="font-size: 0.875rem;">${event.description}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Knowledge Graph Functions
-        async function loadKnowledgeGraph() {
-            const patientId = document.getElementById('graphPatientId').value;
-            if (!patientId) {
-                alert('Please enter a patient ID');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_V2_BASE}/knowledge-graph/patient/${patientId}`);
-                const data = await response.json();
-
-                document.getElementById('graphResults').style.display = 'block';
-                renderKnowledgeGraph(data);
-                
-                const statsDiv = document.getElementById('graphStats');
-                statsDiv.textContent = `${data.nodes?.length || 0} nodes, ${data.edges?.length || 0} connections`;
-            } catch (error) {
-                alert('Error loading graph: ' + error.message);
-            }
-        }
-
-        function renderKnowledgeGraph(data) {
-            const container = document.getElementById('knowledgeGraphContainer');
-            const nodes = data.nodes || [];
-            const edges = data.edges || [];
-
-            if (nodes.length === 0) {
-                container.innerHTML = '<div class="empty-state"><i class="fas fa-project-diagram"></i><p>No graph data for this patient</p></div>';
-                return;
-            }
-
-            const width = container.clientWidth || 600;
-            const height = 400;
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const radius = Math.min(width, height) / 3;
-
-            const nodePositions = {};
-            nodes.forEach((node, i) => {
-                const angle = (2 * Math.PI * i) / nodes.length;
-                nodePositions[node.id] = {
-                    x: centerX + radius * Math.cos(angle),
-                    y: centerY + radius * Math.sin(angle)
-                };
-            });
-
-            const colors = {
-                'patient': '#3b82f6',
-                'medication': '#10b981',
-                'condition': '#f59e0b',
-                'symptom': '#ef4444',
-                'doctor': '#8b5cf6'
+            
+            // Get event type icons and colors
+            const eventStyles = {
+                'prescription_added': { icon: '📋', color: '#3b82f6', bg: '#eff6ff' },
+                'medication_started': { icon: '💊', color: '#059669', bg: '#ecfdf5' },
+                'medication_stopped': { icon: '⏹️', color: '#dc2626', bg: '#fef2f2' },
+                'dosage_changed': { icon: '📝', color: '#d97706', bg: '#fffbeb' },
+                'condition_added': { icon: '🏥', color: '#7c3aed', bg: '#f5f3ff' },
+                'allergy_added': { icon: '⚠️', color: '#dc2626', bg: '#fef2f2' },
+                'visit': { icon: '👨‍⚕️', color: '#0891b2', bg: '#ecfeff' },
             };
 
-            let svg = `<svg width="${width}" height="${height}" style="background: var(--gray-50);">`;
+            container.innerHTML = events.slice(0, 30).map(event => {
+                const eventDate = event.event_date || event.date || '';
+                const eventType = event.event_type || event.type || 'event';
+                const description = event.description || '';
+                const style = eventStyles[eventType] || { icon: '📌', color: '#6b7280', bg: '#f9fafb' };
+                
+                // Format date
+                let displayDate = eventDate;
+                try {
+                    if (eventDate) {
+                        const dt = new Date(eventDate);
+                        displayDate = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    }
+                } catch (e) {}
+                
+                return `
+                    <div style="display: flex; padding: 1rem; border-bottom: 1px solid var(--gray-100); align-items: flex-start;">
+                        <div style="width: 36px; height: 36px; background: ${style.bg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem; font-size: 1.1rem;">
+                            ${style.icon}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                <span style="font-weight: 600; font-size: 0.85rem; color: ${style.color};">${eventType.replace(/_/g, ' ').toUpperCase()}</span>
+                                <span style="font-size: 0.75rem; color: var(--gray-400);">•</span>
+                                <span style="font-size: 0.75rem; color: var(--gray-500);">${displayDate}</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--gray-700);">${description}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== Knowledge Graph Functions ====================
+        
+        let kgCurrentData = null;
+        
+        async function loadPatientKnowledgeGraph() {
+            const patientUid = document.getElementById('kgPatientUid').value.trim();
+            if (!patientUid) {
+                alert('Please enter a patient UID');
+                return;
+            }
+
+            const container = document.getElementById('kgGraphContent');
+            document.getElementById('kgGraphCard').style.display = 'block';
+            container.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 300px;">
+                    <div style="text-align: center; color: var(--gray-500);">
+                        <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom: 1rem;"></i>
+                        <div>Building knowledge graph...</div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${STAFF_API}/patient/${patientUid}/knowledge-graph`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.detail || 'Failed to load knowledge graph');
+                }
+                
+                kgCurrentData = data;
+                document.getElementById('kgPatientName').textContent = `${data.patient_name} (${patientUid})`;
+                document.getElementById('kgLegendCard').style.display = 'block';
+                document.getElementById('kgStats').textContent = `${data.graph.statistics.total_nodes} nodes • ${data.graph.statistics.total_edges} relationships`;
+                
+                renderCleanKnowledgeGraph(data);
+                
+            } catch (error) {
+                console.error('Knowledge graph error:', error);
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 200px;">
+                        <div style="text-align: center; color: var(--danger);">
+                            <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom: 1rem;"></i>
+                            <div>${error.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        async function loadDemoKnowledgeGraph() {
+            const container = document.getElementById('kgGraphContent');
+            document.getElementById('kgGraphCard').style.display = 'block';
+            container.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 300px;">
+                    <div style="text-align: center; color: var(--gray-500);">
+                        <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom: 1rem;"></i>
+                        <div>Loading demo...</div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${STAFF_API}/knowledge-graph/demo`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.detail || 'Failed to load demo');
+                }
+                
+                kgCurrentData = data;
+                document.getElementById('kgPatientName').textContent = `Demo Patient (DEMO-001)`;
+                document.getElementById('kgLegendCard').style.display = 'block';
+                document.getElementById('kgStats').textContent = `${data.graph.statistics.total_nodes} nodes • ${data.graph.statistics.total_edges} relationships • DEMO`;
+                
+                renderCleanKnowledgeGraph(data);
+                
+            } catch (error) {
+                console.error('Demo error:', error);
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 200px;">
+                        <div style="text-align: center; color: var(--danger);">
+                            <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom: 1rem;"></i>
+                            <div>${error.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderCleanKnowledgeGraph(data) {
+            const container = document.getElementById('kgGraphContent');
+            const nodes = data.graph.nodes || [];
+            const edges = data.graph.edges || [];
             
-            // Draw edges
+            if (nodes.length === 0) {
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 200px;">
+                        <div style="text-align: center; color: var(--gray-500);">
+                            <i class="fas fa-project-diagram fa-2x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <div>No data available</div>
+                            <div style="font-size: 0.85rem; margin-top: 0.5rem;">Add medications or conditions to see the graph</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Group nodes by type
+            const patientNodes = nodes.filter(n => n.group === 'patient');
+            const medicationNodes = nodes.filter(n => n.group === 'medication');
+            const conditionNodes = nodes.filter(n => n.group === 'condition');
+            const allergyNodes = nodes.filter(n => n.group === 'allergy');
+            const interactionNodes = nodes.filter(n => n.group === 'interaction');
+            
+            // Build relationships map
+            const relationships = {};
             edges.forEach(edge => {
-                const from = nodePositions[edge.from_node_id];
-                const to = nodePositions[edge.to_node_id];
-                if (from && to) {
-                    svg += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#d1d5db" stroke-width="2" stroke-opacity="0.5"/>`;
+                if (!relationships[edge.from]) relationships[edge.from] = [];
+                relationships[edge.from].push({ to: edge.to, label: edge.label });
+            });
+            
+            // Find which medications treat which conditions
+            const medTreatsCondition = {};
+            edges.forEach(edge => {
+                if (edge.label === 'treats') {
+                    medTreatsCondition[edge.from] = edge.to;
                 }
             });
-
-            // Draw nodes
-            nodes.forEach(node => {
-                const pos = nodePositions[node.id];
-                const color = colors[node.node_type] || '#6b7280';
-                svg += `
-                    <g transform="translate(${pos.x}, ${pos.y})">
-                        <circle r="25" fill="${color}" stroke="white" stroke-width="3"/>
-                        <text y="40" text-anchor="middle" style="font-size: 11px; fill: var(--gray-700);">${node.name?.substring(0, 15) || ''}</text>
-                    </g>
-                `;
-            });
-
-            svg += '</svg>';
-            container.innerHTML = svg;
+            
+            let html = `
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    
+                    <!-- Patient (Center) -->
+                    ${patientNodes.map(patient => `
+                        <div style="display: flex; justify-content: center;">
+                            <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 1.25rem 2rem; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); min-width: 200px;">
+                                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👤</div>
+                                <div style="font-size: 1.1rem; font-weight: 700;">${patient.label?.replace(/👤\n/, '') || 'Patient'}</div>
+                                <div style="font-size: 0.8rem; opacity: 0.9; margin-top: 0.25rem;">Patient</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                    
+                    <!-- Connection Lines Visual -->
+                    <div style="display: flex; justify-content: center;">
+                        <div style="display: flex; gap: 3rem; align-items: flex-start;">
+                            ${medicationNodes.length > 0 ? `<div style="text-align: center; color: var(--gray-400);"><i class="fas fa-arrow-down fa-lg"></i><div style="font-size: 0.75rem; margin-top: 0.25rem;">takes</div></div>` : ''}
+                            ${conditionNodes.length > 0 ? `<div style="text-align: center; color: var(--gray-400);"><i class="fas fa-arrow-down fa-lg"></i><div style="font-size: 0.75rem; margin-top: 0.25rem;">has</div></div>` : ''}
+                            ${allergyNodes.length > 0 ? `<div style="text-align: center; color: var(--gray-400);"><i class="fas fa-arrow-down fa-lg"></i><div style="font-size: 0.75rem; margin-top: 0.25rem;">allergic to</div></div>` : ''}
+                        </div>
+                    </div>
+                    
+                    <!-- Row: Medications, Conditions, Allergies -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                        
+                        <!-- Medications Column -->
+                        ${medicationNodes.length > 0 ? `
+                            <div style="background: white; border-radius: 12px; border: 2px solid #10b981; overflow: hidden; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                                <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.75rem 1rem; font-weight: 600;">
+                                    <i class="fas fa-pills" style="margin-right: 0.5rem;"></i>Medications (${medicationNodes.length})
+                                </div>
+                                <div style="padding: 1rem;">
+                                    ${medicationNodes.map(med => {
+                                        const treatedCondition = medTreatsCondition[med.id];
+                                        const condName = treatedCondition ? conditionNodes.find(c => c.id === treatedCondition)?.label?.replace(/🏥\n/, '') : null;
+                                        return `
+                                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: #f0fdf4; border-radius: 8px; margin-bottom: 0.5rem;">
+                                                <div style="width: 36px; height: 36px; background: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; flex-shrink: 0;">💊</div>
+                                                <div style="flex: 1;">
+                                                    <div style="font-weight: 600; color: #065f46;">${med.label?.replace(/💊\n/, '') || 'Medication'}</div>
+                                                    ${condName ? `<div style="font-size: 0.75rem; color: #059669;"><i class="fas fa-arrow-right" style="margin-right: 0.25rem;"></i>treats ${condName}</div>` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Conditions Column -->
+                        ${conditionNodes.length > 0 ? `
+                            <div style="background: white; border-radius: 12px; border: 2px solid #f59e0b; overflow: hidden; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
+                                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 0.75rem 1rem; font-weight: 600;">
+                                    <i class="fas fa-heartbeat" style="margin-right: 0.5rem;"></i>Conditions (${conditionNodes.length})
+                                </div>
+                                <div style="padding: 1rem;">
+                                    ${conditionNodes.map(cond => `
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: #fffbeb; border-radius: 8px; margin-bottom: 0.5rem;">
+                                            <div style="width: 36px; height: 36px; background: #f59e0b; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; flex-shrink: 0;">🏥</div>
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 600; color: #92400e;">${cond.label?.replace(/🏥\n/, '') || 'Condition'}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Allergies Column -->
+                        ${allergyNodes.length > 0 ? `
+                            <div style="background: white; border-radius: 12px; border: 2px solid #ef4444; overflow: hidden; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);">
+                                <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 0.75rem 1rem; font-weight: 600;">
+                                    <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>Allergies (${allergyNodes.length})
+                                </div>
+                                <div style="padding: 1rem;">
+                                    ${allergyNodes.map(allergy => `
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: #fef2f2; border-radius: 8px; margin-bottom: 0.5rem;">
+                                            <div style="width: 36px; height: 36px; background: #ef4444; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; flex-shrink: 0;">🚫</div>
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 600; color: #991b1b;">${allergy.label?.replace(/🚫\n/, '') || 'Allergy'}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- Drug Interactions (if any) -->
+                    ${interactionNodes.length > 0 ? `
+                        <div style="background: white; border-radius: 12px; border: 2px solid #ec4899; overflow: hidden; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.15);">
+                            <div style="background: linear-gradient(135deg, #ec4899, #be185d); color: white; padding: 0.75rem 1rem; font-weight: 600;">
+                                <i class="fas fa-exclamation-circle" style="margin-right: 0.5rem;"></i>Drug Interactions (${interactionNodes.length})
+                            </div>
+                            <div style="padding: 1rem;">
+                                ${interactionNodes.map(interaction => `
+                                    <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem; background: #fdf2f8; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #ec4899;">
+                                        <div style="width: 40px; height: 40px; background: #ec4899; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">⚠️</div>
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 600; color: #9d174d;">${interaction.label?.replace(/⚠️\n/, '') || 'Interaction'}</div>
+                                            <div style="font-size: 0.85rem; color: #be185d; margin-top: 0.25rem;">
+                                                ${interaction.title?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'Potential drug interaction detected'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Relationship Summary -->
+                    <div style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-radius: 12px; padding: 1.5rem; text-align: center;">
+                        <div style="font-weight: 600; color: var(--gray-700); margin-bottom: 1rem;">
+                            <i class="fas fa-project-diagram" style="margin-right: 0.5rem;"></i>Relationship Summary
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.5rem;">👤</span>
+                                <span style="font-size: 1.25rem; color: #10b981;">→</span>
+                                <span style="font-size: 1.5rem;">💊</span>
+                                <span style="font-size: 0.8rem; color: var(--gray-600);">takes</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.5rem;">👤</span>
+                                <span style="font-size: 1.25rem; color: #f59e0b;">→</span>
+                                <span style="font-size: 1.5rem;">🏥</span>
+                                <span style="font-size: 0.8rem; color: var(--gray-600);">has condition</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.5rem;">💊</span>
+                                <span style="font-size: 1.25rem; color: #3b82f6;">→</span>
+                                <span style="font-size: 1.5rem;">🏥</span>
+                                <span style="font-size: 0.8rem; color: var(--gray-600);">treats</span>
+                            </div>
+                            ${allergyNodes.length > 0 ? `
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-size: 1.5rem;">👤</span>
+                                    <span style="font-size: 1.25rem; color: #ef4444;">→</span>
+                                    <span style="font-size: 1.5rem;">🚫</span>
+                                    <span style="font-size: 0.8rem; color: var(--gray-600);">allergic to</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
         }
 
         // ==================== AI Medical Assistant Functions ====================
@@ -6942,6 +7375,181 @@ Aspirin, 81mg, once daily"></textarea>
                 </div>
             `;
         }
+        
+        // ==================== Allergy & Condition Badge Rendering ====================
+        
+        const CRITICAL_ALLERGY_KEYWORDS = ['penicillin', 'sulfa', 'latex', 'iodine', 'contrast', 'shellfish', 'peanut', 'bee', 'wasp', 'anaphylaxis'];
+        const HIGH_ALLERGY_KEYWORDS = ['aspirin', 'nsaid', 'codeine', 'morphine', 'cephalosporin', 'tetracycline'];
+        
+        const CROSS_REACTIVITY_MAP = {
+            'penicillin': ['Amoxicillin', 'Ampicillin', 'Cephalosporins'],
+            'sulfa': ['Bactrim', 'Sulfamethoxazole'],
+            'aspirin': ['Ibuprofen', 'Naproxen', 'All NSAIDs'],
+            'codeine': ['Morphine', 'Tramadol'],
+            'cephalosporin': ['Cefixime', 'Ceftriaxone']
+        };
+        
+        function renderAllergyBadges(allergies) {
+            const container = document.getElementById('detailAllergiesContainer');
+            if (!allergies || allergies.length === 0) {
+                container.innerHTML = '<span style="color: #059669; font-size: 0.875rem;"><i class="fas fa-check-circle"></i> No allergies recorded</span>';
+                return;
+            }
+            
+            container.innerHTML = allergies.map(allergy => {
+                const allergyLower = allergy.toLowerCase();
+                const isCritical = CRITICAL_ALLERGY_KEYWORDS.some(kw => allergyLower.includes(kw));
+                const isHigh = HIGH_ALLERGY_KEYWORDS.some(kw => allergyLower.includes(kw));
+                
+                let badgeClass = 'standard';
+                let icon = '⚠️';
+                let tooltip = '';
+                
+                if (isCritical) {
+                    badgeClass = 'critical';
+                    icon = '🚨';
+                    // Check cross-reactivity
+                    for (const [key, drugs] of Object.entries(CROSS_REACTIVITY_MAP)) {
+                        if (allergyLower.includes(key)) {
+                            tooltip = `Cross-reactive with: ${drugs.join(', ')}`;
+                            break;
+                        }
+                    }
+                } else if (isHigh) {
+                    badgeClass = 'high';
+                    icon = '⚠️';
+                }
+                
+                return `<span class="allergy-badge ${badgeClass}" title="${tooltip}">${icon} ${allergy}</span>`;
+            }).join('');
+        }
+        
+        const HIGH_IMPACT_CONDITIONS = {
+            'kidney': 'Affects drug dosing',
+            'renal': 'Affects drug dosing',
+            'liver': 'Affects drug metabolism',
+            'hepatic': 'Affects drug metabolism',
+            'heart': 'Avoid NSAIDs, certain drugs',
+            'cardiac': 'Avoid NSAIDs, certain drugs',
+            'pregnant': 'Many drugs contraindicated',
+            'pregnancy': 'Many drugs contraindicated',
+            'asthma': 'Avoid beta-blockers',
+            'diabetes': 'Monitor with steroids',
+            'bleeding': 'Avoid anticoagulants',
+            'ulcer': 'Avoid NSAIDs'
+        };
+        
+        function renderConditionBadges(conditions) {
+            const container = document.getElementById('detailConditionsContainer');
+            if (!conditions || conditions.length === 0) {
+                container.innerHTML = '<span style="color: var(--gray-400); font-size: 0.875rem;">No chronic conditions recorded</span>';
+                return;
+            }
+            
+            container.innerHTML = conditions.map(condition => {
+                const conditionLower = condition.toLowerCase();
+                let isHighImpact = false;
+                let impact = '';
+                
+                for (const [keyword, desc] of Object.entries(HIGH_IMPACT_CONDITIONS)) {
+                    if (conditionLower.includes(keyword)) {
+                        isHighImpact = true;
+                        impact = desc;
+                        break;
+                    }
+                }
+                
+                const badgeClass = isHighImpact ? 'high-impact' : 'standard';
+                const icon = isHighImpact ? '⚡' : '•';
+                
+                return `<span class="condition-badge ${badgeClass}" title="${impact}">${icon} ${condition}</span>`;
+            }).join('');
+        }
+        
+        // ==================== Real-Time Drug Safety Check ====================
+        
+        let safetyAlertTimeout = null;
+        
+        async function checkDrugSafety(drugName, patientAllergies, patientConditions, currentMeds) {
+            if (!drugName || drugName.length < 2) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/check-drug-safety`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        drug_name: drugName,
+                        patient_allergies: patientAllergies || [],
+                        patient_conditions: patientConditions || [],
+                        current_medications: currentMeds || []
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.alerts_count > 0) {
+                    showDrugSafetyAlerts(result.alerts, drugName);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('Drug safety check error:', error);
+                return null;
+            }
+        }
+        
+        function showDrugSafetyAlerts(alerts, drugName) {
+            // Remove existing popup
+            const existing = document.getElementById('drugSafetyPopup');
+            if (existing) existing.remove();
+            
+            if (!alerts || alerts.length === 0) return;
+            
+            const popup = document.createElement('div');
+            popup.id = 'drugSafetyPopup';
+            popup.className = 'drug-safety-popup';
+            
+            popup.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 700; font-size: 0.9rem;">⚠️ Safety Alerts for ${drugName}</span>
+                    <button onclick="document.getElementById('drugSafetyPopup').remove()" style="background: none; border: none; cursor: pointer; font-size: 1.25rem; color: var(--gray-500);">×</button>
+                </div>
+                ${alerts.slice(0, 3).map(alert => `
+                    <div class="safety-alert-card ${alert.severity.toLowerCase()}">
+                        <div class="safety-alert-header ${alert.severity.toLowerCase()}">
+                            ${alert.icon} ${alert.type}: ${alert.title}
+                        </div>
+                        <div class="safety-alert-body">
+                            ${alert.message}
+                        </div>
+                        ${alert.action ? `<div class="safety-alert-action"><strong>Action:</strong> ${alert.action}</div>` : ''}
+                    </div>
+                `).join('')}
+                ${alerts.length > 3 ? `<div style="text-align: center; font-size: 0.8rem; color: var(--gray-500);">+${alerts.length - 3} more alerts</div>` : ''}
+            `;
+            
+            document.body.appendChild(popup);
+            
+            // Auto-hide after 15 seconds for non-critical alerts
+            const hasCritical = alerts.some(a => a.severity === 'CRITICAL');
+            if (!hasCritical) {
+                safetyAlertTimeout = setTimeout(() => {
+                    popup.remove();
+                }, 15000);
+            }
+        }
+        
+        // Helper: Get patient context for safety checks
+        function getPatientContextForSafety() {
+            if (!currentPatientData) return { allergies: [], conditions: [], meds: [] };
+            
+            return {
+                allergies: currentPatientData.patient?.allergies || [],
+                conditions: currentPatientData.patient?.chronic_conditions || [],
+                meds: (currentPatientData.patient?.current_medications || []).map(m => m.name || m)
+            };
+        }
+        
     </script>
 </body>
 </html>

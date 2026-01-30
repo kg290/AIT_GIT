@@ -522,6 +522,17 @@
                             </div>
                         </div>
 
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Current Symptoms (comma-separated)</label>
+                                <input type="text" class="form-input" id="patientSymptoms" placeholder="e.g., Fever, Headache, Cough">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Current Medications (comma-separated)</label>
+                                <input type="text" class="form-input" id="patientMedications" placeholder="e.g., Metformin 500mg, Aspirin 81mg">
+                            </div>
+                        </div>
+
                         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
                             <i class="fas fa-qrcode"></i> Register & Generate QR Code
                         </button>
@@ -664,6 +675,172 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
         </div>
     </div>
 
+    <!-- Edit Patient Modal -->
+    <div class="modal" id="editPatientModal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #059669, #10b981);">
+                <h3 style="color: white;"><i class="fas fa-user-edit"></i> Edit Patient Medical Record</h3>
+                <button class="icon-btn" onclick="closeModal('editPatientModal')" style="color: white;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <input type="hidden" id="editPatientUID">
+                
+                <!-- Patient Header -->
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border-radius: 12px; margin-bottom: 1.5rem;">
+                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user" style="color: white; font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 id="editPatientName" style="margin: 0; color: #064e3b;">Loading...</h3>
+                        <p id="editPatientInfo" style="margin: 0; font-size: 0.875rem; color: #065f46;"></p>
+                    </div>
+                </div>
+                
+                <!-- Tabs for different sections -->
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 0.5rem;">
+                    <button class="edit-tab active" onclick="showEditTab('conditions')" id="tabConditions">
+                        <i class="fas fa-heartbeat"></i> Conditions
+                    </button>
+                    <button class="edit-tab" onclick="showEditTab('allergies')" id="tabAllergies">
+                        <i class="fas fa-allergies"></i> Allergies
+                    </button>
+                    <button class="edit-tab" onclick="showEditTab('medications')" id="tabMedications">
+                        <i class="fas fa-pills"></i> Medications
+                    </button>
+                    <button class="edit-tab" onclick="showEditTab('symptoms')" id="tabSymptoms">
+                        <i class="fas fa-stethoscope"></i> Symptoms
+                    </button>
+                    <button class="edit-tab" onclick="showEditTab('info')" id="tabInfo">
+                        <i class="fas fa-info-circle"></i> Basic Info
+                    </button>
+                </div>
+                
+                <!-- Conditions Tab -->
+                <div class="edit-tab-content active" id="contentConditions">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" class="form-input" id="newCondition" placeholder="Add new condition (e.g., Type 2 Diabetes)" style="flex: 1;">
+                        <button class="btn btn-success" onclick="addCondition()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="conditionsList" class="tag-list"></div>
+                </div>
+                
+                <!-- Allergies Tab -->
+                <div class="edit-tab-content" id="contentAllergies">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" class="form-input" id="newAllergy" placeholder="Add new allergy (e.g., Penicillin)" style="flex: 1;">
+                        <select class="form-input" id="allergySeverity" style="width: 150px;">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                        <button class="btn btn-danger" onclick="addAllergy()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="allergiesList" class="tag-list"></div>
+                </div>
+                
+                <!-- Medications Tab -->
+                <div class="edit-tab-content" id="contentMedications">
+                    <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; font-size: 0.875rem; color: #92400e;"><i class="fas fa-info-circle"></i> Add medications manually when not from prescription. Existing medications from OCR prescriptions are listed below.</p>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 1rem; align-items: end;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem;">Medication Name</label>
+                            <input type="text" class="form-input" id="newMedName" placeholder="e.g., Metformin">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem;">Dosage</label>
+                            <input type="text" class="form-input" id="newMedDosage" placeholder="e.g., 500mg">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem;">Frequency</label>
+                            <input type="text" class="form-input" id="newMedFrequency" placeholder="e.g., twice daily">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem;">Prescriber</label>
+                            <input type="text" class="form-input" id="newMedPrescriber" placeholder="Dr. Name">
+                        </div>
+                        <button class="btn btn-primary" onclick="addMedication()" style="height: 42px;">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <h5 style="margin-bottom: 0.5rem; color: var(--gray-700);">Active Medications</h5>
+                    <div id="activeMedicationsList" class="medication-list"></div>
+                    <h5 style="margin: 1rem 0 0.5rem; color: var(--gray-500);">Stopped Medications</h5>
+                    <div id="inactiveMedicationsList" class="medication-list"></div>
+                </div>
+                
+                <!-- Symptoms Tab -->
+                <div class="edit-tab-content" id="contentSymptoms">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" class="form-input" id="newSymptom" placeholder="Record new symptom (e.g., Fever, Headache)" style="flex: 1;">
+                        <select class="form-input" id="symptomSeverity" style="width: 150px;">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                        <button class="btn btn-warning" onclick="addSymptom()">
+                            <i class="fas fa-plus"></i> Record
+                        </button>
+                    </div>
+                    <p style="font-size: 0.875rem; color: var(--gray-500); margin-bottom: 1rem;">Symptoms are recorded in the patient timeline for tracking.</p>
+                    <div id="recentSymptoms"></div>
+                </div>
+                
+                <!-- Basic Info Tab -->
+                <div class="edit-tab-content" id="contentInfo">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-input" id="editPhone" placeholder="Phone number">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="editEmail" placeholder="Email address">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-input" id="editAddress" placeholder="Full address">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Weight (kg)</label>
+                            <input type="number" class="form-input" id="editWeight" placeholder="Weight in kg" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Height (cm)</label>
+                            <input type="number" class="form-input" id="editHeight" placeholder="Height in cm">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Name</label>
+                            <input type="text" class="form-input" id="editEmergencyName" placeholder="Emergency contact name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Phone</label>
+                            <input type="tel" class="form-input" id="editEmergencyPhone" placeholder="Emergency contact phone">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-input" id="editNotes" placeholder="Additional notes about the patient" rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="savePatientInfo()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         .spinner {
             width: 24px;
@@ -683,6 +860,87 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
         .upload-zone.dragover {
             border-color: var(--primary);
             background: rgba(37, 99, 235, 0.1);
+        }
+        .edit-tab {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            color: var(--gray-500);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+        }
+        .edit-tab:hover {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        .edit-tab.active {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: -2px;
+        }
+        .edit-tab-content {
+            display: none;
+        }
+        .edit-tab-content.active {
+            display: block;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .tag-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .tag-item.condition {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+        .tag-item.allergy {
+            background: linear-gradient(135deg, #fecaca, #fca5a5);
+            color: #991b1b;
+        }
+        .tag-item button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: inherit;
+            opacity: 0.7;
+        }
+        .tag-item button:hover {
+            opacity: 1;
+        }
+        .medication-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .medication-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        .medication-item.active {
+            border-left-color: #10b981;
+        }
+        .medication-item.inactive {
+            border-left-color: #9ca3af;
+            opacity: 0.7;
         }
     </style>
 
@@ -740,6 +998,9 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
                             <div class="prn">${p.patient_id}</div>
                         </div>
                         <div class="actions">
+                            <button class="icon-btn" onclick="event.stopPropagation(); openEditPatientModal('${p.patient_id}')" title="Edit Patient" style="color: #059669;">
+                                <i class="fas fa-user-edit"></i>
+                            </button>
                             <button class="icon-btn" onclick="event.stopPropagation(); downloadPatientQR('${p.patient_id}')" title="Download QR">
                                 <i class="fas fa-qrcode"></i>
                             </button>
@@ -773,6 +1034,10 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
                 chronic_conditions: document.getElementById('patientConditions').value.split(',').map(c => c.trim()).filter(c => c)
             };
             
+            // Get symptoms and current medications
+            const symptoms = document.getElementById('patientSymptoms').value.split(',').map(s => s.trim()).filter(s => s);
+            const medications = document.getElementById('patientMedications').value.split(',').map(m => m.trim()).filter(m => m);
+            
             try {
                 const response = await fetch(`${API_BASE}/api/staff/register-patient`, {
                     method: 'POST',
@@ -784,6 +1049,29 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
                 
                 if (result.success) {
                     currentPRN = result.prn;
+                    
+                    // Add symptoms if any
+                    for (const symptom of symptoms) {
+                        await fetch(`${API_BASE}/api/staff/patient/${result.prn}/symptom`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: symptom })
+                        });
+                    }
+                    
+                    // Add current medications if any
+                    for (const med of medications) {
+                        // Parse medication string like "Metformin 500mg" or just "Aspirin"
+                        const parts = med.match(/^(.+?)\s*(\d+\s*(?:mg|ml|g|mcg|units)?)?$/i);
+                        const medName = parts ? parts[1].trim() : med;
+                        const dosage = parts && parts[2] ? parts[2].trim() : '';
+                        
+                        await fetch(`${API_BASE}/api/staff/patient/${result.prn}/medication`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: medName, dosage })
+                        });
+                    }
                     
                     // Show QR preview
                     document.getElementById('qrImage').src = `data:image/png;base64,${result.qr_code_base64}`;
@@ -839,6 +1127,9 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
                             <div class="prn">${p.prn}</div>
                         </div>
                         <div class="actions">
+                            <button class="icon-btn" onclick="event.stopPropagation(); openEditPatientModal('${p.prn}')" title="Edit Patient" style="color: #059669;">
+                                <i class="fas fa-user-edit"></i>
+                            </button>
                             <button class="icon-btn" onclick="event.stopPropagation(); downloadPatientQR('${p.prn}')" title="Download QR">
                                 <i class="fas fa-qrcode"></i>
                             </button>
@@ -1118,6 +1409,367 @@ Amoxicillin 250mg, 1 capsule, thrice daily"></textarea>
             } catch (error) {
                 console.error('Save error:', error);
                 alert('Error saving prescription: ' + error.message);
+            }
+        }
+        
+        // ==================== Edit Patient Modal Functions ====================
+        
+        let currentEditPatient = null;
+        
+        async function openEditPatientModal(patientUid) {
+            document.getElementById('editPatientUID').value = patientUid;
+            document.getElementById('editPatientModal').classList.add('active');
+            
+            // Reset to first tab
+            showEditTab('conditions');
+            
+            // Load patient data
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/medical-summary`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    alert('Failed to load patient: ' + (data.detail || 'Unknown error'));
+                    closeModal('editPatientModal');
+                    return;
+                }
+                
+                currentEditPatient = data;
+                
+                // Update header
+                document.getElementById('editPatientName').textContent = data.patient.name || 'Unknown';
+                document.getElementById('editPatientInfo').textContent = 
+                    `UID: ${patientUid} | Age: ${data.patient.age || 'N/A'} | Gender: ${data.patient.gender || 'N/A'}`;
+                
+                // Render conditions
+                renderConditions(data.conditions || []);
+                
+                // Render allergies
+                renderAllergies(data.allergies || []);
+                
+                // Render medications
+                renderMedications(data.medications);
+                
+                // Render recent symptoms from timeline
+                renderRecentSymptoms(data.timeline || []);
+                
+                // Fill basic info
+                document.getElementById('editPhone').value = data.patient.phone || '';
+                document.getElementById('editEmail').value = data.patient.email || '';
+                document.getElementById('editAddress').value = data.patient.address || '';
+                document.getElementById('editWeight').value = data.patient.weight_kg || '';
+                document.getElementById('editHeight').value = data.patient.height_cm || '';
+                document.getElementById('editEmergencyName').value = data.patient.emergency_contact_name || '';
+                document.getElementById('editEmergencyPhone').value = data.patient.emergency_contact_phone || '';
+                document.getElementById('editNotes').value = data.patient.notes || '';
+                
+            } catch (error) {
+                console.error('Error loading patient:', error);
+                alert('Error loading patient data');
+            }
+        }
+        
+        function showEditTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.edit-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.edit-tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('content' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+        }
+        
+        function renderConditions(conditions) {
+            const container = document.getElementById('conditionsList');
+            if (conditions.length === 0) {
+                container.innerHTML = '<p style="color: var(--gray-500); font-size: 0.875rem;">No chronic conditions recorded</p>';
+                return;
+            }
+            container.innerHTML = conditions.map(c => `
+                <span class="tag-item condition">
+                    <i class="fas fa-heartbeat"></i> ${c}
+                    <button onclick="removeCondition('${c}')" title="Remove"><i class="fas fa-times"></i></button>
+                </span>
+            `).join('');
+        }
+        
+        function renderAllergies(allergies) {
+            const container = document.getElementById('allergiesList');
+            if (allergies.length === 0) {
+                container.innerHTML = '<p style="color: var(--gray-500); font-size: 0.875rem;">No allergies recorded</p>';
+                return;
+            }
+            container.innerHTML = allergies.map(a => `
+                <span class="tag-item allergy">
+                    <i class="fas fa-exclamation-triangle"></i> ${a}
+                    <button onclick="removeAllergy('${a}')" title="Remove"><i class="fas fa-times"></i></button>
+                </span>
+            `).join('');
+        }
+        
+        function renderMedications(medications) {
+            const activeList = document.getElementById('activeMedicationsList');
+            const inactiveList = document.getElementById('inactiveMedicationsList');
+            
+            const active = medications.active || [];
+            const inactive = medications.inactive || [];
+            
+            if (active.length === 0) {
+                activeList.innerHTML = '<p style="color: var(--gray-500); font-size: 0.875rem;">No active medications</p>';
+            } else {
+                activeList.innerHTML = active.map(m => `
+                    <div class="medication-item active">
+                        <div>
+                            <strong>${m.name}</strong>
+                            <span style="color: var(--gray-500); font-size: 0.85rem;"> ${m.dosage || ''} ${m.frequency ? '• ' + m.frequency : ''}</span>
+                            <div style="font-size: 0.75rem; color: var(--gray-400);">Started: ${m.start_date ? new Date(m.start_date).toLocaleDateString() : 'N/A'}</div>
+                        </div>
+                        <button class="btn btn-sm" style="background: #fef2f2; color: #dc2626; padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="stopMedication(${m.id}, '${m.name}')">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                `).join('');
+            }
+            
+            if (inactive.length === 0) {
+                inactiveList.innerHTML = '<p style="color: var(--gray-400); font-size: 0.875rem;">No stopped medications</p>';
+            } else {
+                inactiveList.innerHTML = inactive.map(m => `
+                    <div class="medication-item inactive">
+                        <div>
+                            <strong>${m.name}</strong>
+                            <span style="color: var(--gray-400); font-size: 0.85rem;"> ${m.dosage || ''}</span>
+                            <div style="font-size: 0.75rem; color: var(--gray-400);">Stopped: ${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'N/A'}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        function renderRecentSymptoms(timeline) {
+            const container = document.getElementById('recentSymptoms');
+            const symptoms = timeline.filter(e => e.event_type === 'symptom_reported').slice(0, 10);
+            
+            if (symptoms.length === 0) {
+                container.innerHTML = '<p style="color: var(--gray-500); font-size: 0.875rem;">No symptoms recorded recently</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <h5 style="margin-bottom: 0.5rem; color: var(--gray-600);">Recent Symptoms</h5>
+                ${symptoms.map(s => `
+                    <div style="padding: 0.5rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                        <span style="color: var(--gray-700);">${s.description}</span>
+                        <span style="color: var(--gray-400); font-size: 0.75rem; margin-left: 0.5rem;">${new Date(s.event_date).toLocaleDateString()}</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        async function addCondition() {
+            const name = document.getElementById('newCondition').value.trim();
+            if (!name) return;
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/condition`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('newCondition').value = '';
+                    openEditPatientModal(patientUid); // Refresh
+                } else {
+                    alert('Failed: ' + (result.detail || result.message));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function removeCondition(name) {
+            if (!confirm(`Remove condition "${name}"?`)) return;
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/condition/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    openEditPatientModal(patientUid); // Refresh
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function addAllergy() {
+            const name = document.getElementById('newAllergy').value.trim();
+            if (!name) return;
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            const severity = document.getElementById('allergySeverity').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/allergy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, severity })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('newAllergy').value = '';
+                    openEditPatientModal(patientUid); // Refresh
+                } else {
+                    alert('Failed: ' + (result.detail || result.message));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function removeAllergy(name) {
+            if (!confirm(`Remove allergy "${name}"?`)) return;
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/allergy/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    openEditPatientModal(patientUid); // Refresh
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function addMedication() {
+            const name = document.getElementById('newMedName').value.trim();
+            if (!name) {
+                alert('Please enter medication name');
+                return;
+            }
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/medication`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        dosage: document.getElementById('newMedDosage').value,
+                        frequency: document.getElementById('newMedFrequency').value,
+                        prescriber: document.getElementById('newMedPrescriber').value
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('newMedName').value = '';
+                    document.getElementById('newMedDosage').value = '';
+                    document.getElementById('newMedFrequency').value = '';
+                    document.getElementById('newMedPrescriber').value = '';
+                    openEditPatientModal(patientUid); // Refresh
+                } else {
+                    alert('Failed: ' + (result.detail || result.message));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function stopMedication(medicationId, name) {
+            const reason = prompt(`Reason for stopping ${name}:`, 'Discontinued by physician');
+            if (reason === null) return;
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/medication/${medicationId}/stop`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    openEditPatientModal(patientUid); // Refresh
+                } else {
+                    alert('Failed: ' + (result.detail || result.message));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function addSymptom() {
+            const name = document.getElementById('newSymptom').value.trim();
+            if (!name) return;
+            
+            const patientUid = document.getElementById('editPatientUID').value;
+            const severity = document.getElementById('symptomSeverity').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/symptom`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, severity })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('newSymptom').value = '';
+                    openEditPatientModal(patientUid); // Refresh
+                } else {
+                    alert('Failed: ' + (result.detail || result.message));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function savePatientInfo() {
+            const patientUid = document.getElementById('editPatientUID').value;
+            
+            const data = {
+                phone: document.getElementById('editPhone').value,
+                email: document.getElementById('editEmail').value,
+                address: document.getElementById('editAddress').value,
+                weight_kg: document.getElementById('editWeight').value || null,
+                height_cm: document.getElementById('editHeight').value || null,
+                emergency_contact_name: document.getElementById('editEmergencyName').value,
+                emergency_contact_phone: document.getElementById('editEmergencyPhone').value,
+                notes: document.getElementById('editNotes').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/patient/${patientUid}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Patient information updated successfully!');
+                } else {
+                    alert('Failed: ' + (result.detail || result.message));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
             }
         }
     </script>

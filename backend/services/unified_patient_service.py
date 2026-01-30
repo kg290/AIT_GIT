@@ -219,15 +219,31 @@ class UnifiedPatientService:
                 session.add(patient)
                 session.flush()
             
-            # Parse prescription date
+            # Parse prescription date - try multiple sources
             prescription_date = datetime.utcnow()
+            date_parsed = False
+            
+            # Try prescription_date field first
             date_str = prescription_data.get('prescription_date')
             if date_str:
                 try:
                     from dateutil import parser
                     prescription_date = parser.parse(date_str, dayfirst=True)
-                except:
-                    pass
+                    date_parsed = True
+                    logger.info(f"Parsed prescription_date: {prescription_date}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse prescription_date '{date_str}': {e}")
+            
+            # Fallback to scan_timestamp if prescription_date not parsed
+            if not date_parsed:
+                scan_ts = prescription_data.get('scan_timestamp')
+                if scan_ts:
+                    try:
+                        from dateutil import parser
+                        prescription_date = parser.parse(scan_ts)
+                        logger.info(f"Using scan_timestamp as prescription date: {prescription_date}")
+                    except Exception as e:
+                        logger.warning(f"Failed to parse scan_timestamp '{scan_ts}': {e}")
             
             # Create prescription
             prescription_uid = str(uuid.uuid4())[:8].upper()
@@ -641,6 +657,280 @@ class UnifiedPatientService:
             'created_at': patient.created_at.isoformat() if patient.created_at else None,
             'updated_at': patient.updated_at.isoformat() if patient.updated_at else None
         }
+    
+    def remove_allergy(self, patient_uid: str, allergy_name: str) -> Dict[str, Any]:
+        """Remove an allergy from patient's record"""
+        session = self._get_session()
+        try:
+            patient = session.query(Patient).filter(
+                Patient.patient_uid == patient_uid
+            ).first()
+            
+            if not patient:
+                return {'error': f'Patient {patient_uid} not found'}
+            
+            allergy = session.query(Allergy).filter(
+                func.lower(Allergy.name) == allergy_name.lower().strip()
+            ).first()
+            
+            if allergy and allergy in patient.allergies:
+                patient.allergies.remove(allergy)
+                session.commit()
+                return {'success': True, 'message': f'Allergy "{allergy_name}" removed'}
+            
+            return {'success': True, 'message': f'Allergy "{allergy_name}" not found on patient'}
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error removing allergy: {e}")
+            return {'error': str(e)}
+        finally:
+            session.close()
+    
+    def remove_condition(self, patient_uid: str, condition_name: str) -> Dict[str, Any]:
+        """Remove a condition from patient's record"""
+        session = self._get_session()
+        try:
+            patient = session.query(Patient).filter(
+                Patient.patient_uid == patient_uid
+            ).first()
+            
+            if not patient:
+                return {'error': f'Patient {patient_uid} not found'}
+            
+            condition = session.query(Condition).filter(
+                func.lower(Condition.name) == condition_name.lower().strip()
+            ).first()
+            
+            if condition and condition in patient.conditions:
+                patient.conditions.remove(condition)
+                session.commit()
+                return {'success': True, 'message': f'Condition "{condition_name}" removed'}
+            
+            return {'success': True, 'message': f'Condition "{condition_name}" not found on patient'}
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error removing condition: {e}")
+            return {'error': str(e)}
+        finally:
+            session.close()
+    
+    def add_symptom(self, patient_uid: str, symptom_name: str, severity: str = None) -> Dict[str, Any]:
+        """Add a symptom to patient's record as a timeline event"""
+        session = self._get_session()
+        try:
+            patient = session.query(Patient).filter(
+                Patient.patient_uid == patient_uid
+            ).first()
+            
+            if not patient:
+                return {'error': f'Patient {patient_uid} not found'}
+            
+            # Create a timeline event for the symptom
+            event = TimelineEvent(
+                patient_id=patient.id,
+                event_type='symptom_reported',
+                event_date=datetime.utcnow(),
+                description=f"Symptom reported: {symptom_name}" + (f" (Severity: {severity})" if severity else ""),
+                details={'symptom': symptom_name, 'severity': severity},
+                severity=AlertSeverity.WARNING if severity and severity.lower() == 'severe' else AlertSeverity.INFO
+            )
+            session.add(event)
+            session.commit()
+            
+            return {'success': True, 'message': f'Symptom "{symptom_name}" recorded'}
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error adding symptom: {e}")
+            return {'error': str(e)}
+        finally:
+            session.close()
+    
+    def add_medication_manual(
+        self,
+        patient_uid: str,
+        medication_name: str,
+        dosage: str = None,
+        frequency: str = None,
+        prescriber: str = None,
+        reason: str = None,
+        start_date: str = None
+    ) -> Dict[str, Any]:
+        """Manually add a medication (not from prescription OCR)"""
+        session = self._get_session()
+        try:
+            patient = session.query(Patient).filter(
+                Patient.patient_uid == patient_uid
+            ).first()
+            
+            if not patient:
+                return {'error': f'Patient {patient_uid} not found'}
+            
+            # Parse start date or use now
+            med_start_date = datetime.utcnow()
+            if start_date:
+                try:
+                    from dateutil import parser
+                    med_start_date = parser.parse(start_date, dayfirst=True)
+                except:
+                    pass
+            
+            # Check if medication already exists for this patient
+            existing = session.query(PatientMedication).filter(
+                PatientMedication.patient_id == patient.id,
+                func.lower(PatientMedication.name) == medication_name.lower().strip(),
+                PatientMedication.is_active == True
+            ).first()
+            
+            if existing:
+                return {'success': True, 'message': f'Medication "{medication_name}" already active for patient'}
+            
+            # Create patient medication
+            patient_med = PatientMedication(
+                patient_id=patient.id,
+                name=medication_name.strip(),
+                dosage=dosage,
+                frequency=frequency,
+                start_date=med_start_date,
+                is_active=True,
+                prescriber=prescriber,
+                change_reason=reason or 'Manually added'
+            )
+            session.add(patient_med)
+            
+            # Create timeline event
+            event = TimelineEvent(
+                patient_id=patient.id,
+                event_type='medication_started',
+                event_date=med_start_date,
+                description=f"Medication started: {medication_name}" + (f" by Dr. {prescriber}" if prescriber else " (manual entry)"),
+                details={'medication': medication_name, 'dosage': dosage, 'frequency': frequency, 'prescriber': prescriber},
+                severity=AlertSeverity.INFO
+            )
+            session.add(event)
+            session.commit()
+            
+            return {
+                'success': True, 
+                'message': f'Medication "{medication_name}" added',
+                'medication_id': patient_med.id
+            }
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error adding medication: {e}")
+            return {'error': str(e)}
+        finally:
+            session.close()
+    
+    def stop_medication(self, patient_uid: str, medication_id: int, reason: str = None) -> Dict[str, Any]:
+        """Stop/discontinue a medication"""
+        session = self._get_session()
+        try:
+            patient = session.query(Patient).filter(
+                Patient.patient_uid == patient_uid
+            ).first()
+            
+            if not patient:
+                return {'error': f'Patient {patient_uid} not found'}
+            
+            medication = session.query(PatientMedication).filter(
+                PatientMedication.id == medication_id,
+                PatientMedication.patient_id == patient.id
+            ).first()
+            
+            if not medication:
+                return {'error': f'Medication not found'}
+            
+            if not medication.is_active:
+                return {'success': True, 'message': 'Medication already stopped'}
+            
+            medication.is_active = False
+            medication.end_date = datetime.utcnow()
+            medication.change_reason = reason or 'Discontinued'
+            
+            # Create timeline event
+            event = TimelineEvent(
+                patient_id=patient.id,
+                event_type='medication_stopped',
+                event_date=datetime.utcnow(),
+                description=f"Medication stopped: {medication.name}" + (f" - {reason}" if reason else ""),
+                details={'medication': medication.name, 'reason': reason},
+                severity=AlertSeverity.INFO
+            )
+            session.add(event)
+            session.commit()
+            
+            return {'success': True, 'message': f'Medication "{medication.name}" stopped'}
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error stopping medication: {e}")
+            return {'error': str(e)}
+        finally:
+            session.close()
+    
+    def update_patient(self, patient_uid: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update patient basic information"""
+        session = self._get_session()
+        try:
+            patient = session.query(Patient).filter(
+                Patient.patient_uid == patient_uid
+            ).first()
+            
+            if not patient:
+                return {'error': f'Patient {patient_uid} not found'}
+            
+            # Update fields if provided
+            if data.get('first_name'):
+                patient.first_name = data['first_name']
+            if data.get('last_name'):
+                patient.last_name = data['last_name']
+            if data.get('phone'):
+                patient.phone = data['phone']
+            if data.get('email'):
+                patient.email = data['email']
+            if data.get('address'):
+                patient.address = data['address']
+            if data.get('gender'):
+                patient.gender = data['gender']
+            if data.get('blood_group'):
+                patient.blood_group = data['blood_group']
+            if data.get('date_of_birth'):
+                try:
+                    from dateutil import parser
+                    patient.date_of_birth = parser.parse(data['date_of_birth'])
+                except:
+                    pass
+            if data.get('weight_kg') is not None:
+                patient.weight_kg = float(data['weight_kg'])
+            if data.get('height_cm') is not None:
+                patient.height_cm = float(data['height_cm'])
+            if data.get('emergency_contact_name'):
+                patient.emergency_contact_name = data['emergency_contact_name']
+            if data.get('emergency_contact_phone'):
+                patient.emergency_contact_phone = data['emergency_contact_phone']
+            if data.get('notes'):
+                patient.notes = data['notes']
+            
+            patient.updated_at = datetime.utcnow()
+            session.commit()
+            
+            return {
+                'success': True,
+                'patient_uid': patient.patient_uid,
+                'name': patient.full_name,
+                'updated_at': patient.updated_at.isoformat()
+            }
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating patient: {e}")
+            return {'error': str(e)}
+        finally:
+            session.close()
 
 
 # Singleton instance
