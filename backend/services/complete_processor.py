@@ -1,6 +1,6 @@
 """
 Complete Document Processor - Full pipeline for prescription processing
-Integrates OCR, AI extraction, drug safety, and database persistence
+Integrates OCR, AI extraction, drug safety, knowledge graph, patient history, and database persistence
 """
 import logging
 import time
@@ -18,6 +18,7 @@ from backend.services.drug_database import (
     DrugInteraction, Severity
 )
 from backend.services.database_service import db_service
+from backend.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +268,7 @@ class CompleteDocumentProcessor:
     
     def _save_to_database(self, document_id: str, file_path: str, 
                          result: ProcessingResult, patient_id: int = None):
-        """Save processing result to database"""
+        """Save processing result to database with full integration"""
         
         # Parse prescription date
         prescription_date = None
@@ -289,7 +290,15 @@ class CompleteDocumentProcessor:
                 'name': result.patient_name,
                 'age': result.patient_age,
                 'gender': result.patient_gender,
-                'id': result.patient_id
+                'id': result.patient_id,
+                'address': result.patient_address,
+                'phone': result.patient_phone
+            },
+            doctor_info_extracted={
+                'name': result.doctor_name,
+                'qualification': result.doctor_qualification,
+                'clinic': result.clinic_name,
+                'reg_no': result.doctor_reg_no
             },
             diagnosis=result.diagnosis,
             chief_complaints=result.chief_complaints,
@@ -335,6 +344,188 @@ class CompleteDocumentProcessor:
                 mechanism=interaction.get('mechanism'),
                 management=interaction.get('management')
             )
+        
+        # ============ KNOWLEDGE GRAPH & PATIENT HISTORY ============
+        if patient_id:
+            try:
+                self._build_knowledge_graph(patient_id, prescription_id, result)
+                logger.info(f"[{document_id}] Knowledge graph updated for patient {patient_id}")
+            except Exception as e:
+                logger.warning(f"[{document_id}] Failed to update knowledge graph: {e}")
+        
+        # ============ AUDIT LOGGING ============
+        try:
+            self._log_audit(document_id, prescription_id, result, patient_id)
+        except Exception as e:
+            logger.warning(f"[{document_id}] Failed to log audit: {e}")
+    
+    def _build_knowledge_graph(self, patient_id: int, prescription_id: int, result: ProcessingResult):
+        """Build knowledge graph relationships from extraction"""
+        try:
+            from backend.services.enhanced_knowledge_graph_service import KnowledgeGraphService
+            from backend.services.patient_history_service import PatientHistoryService
+            from backend.models.knowledge_graph import NodeType, RelationshipType
+            
+            db = SessionLocal()
+            try:
+                kg_service = KnowledgeGraphService(db)
+                history_service = PatientHistoryService(db)
+                
+                # Create patient node
+                patient_node = kg_service.create_or_get_node(
+                    node_type=NodeType.PATIENT,
+                    name=result.patient_name or f"Patient_{patient_id}",
+                    external_id=str(patient_id),
+                    properties={
+                        'age': result.patient_age,
+                        'gender': result.patient_gender
+                    }
+                )
+                
+                # Create prescription node
+                prescription_node = kg_service.create_or_get_node(
+                    node_type=NodeType.PRESCRIPTION,
+                    name=f"Prescription_{prescription_id}",
+                    external_id=str(prescription_id),
+                    properties={
+                        'date': result.prescription_date,
+                        'doctor': result.doctor_name
+                    }
+                )
+                
+                # Link patient to prescription
+                kg_service.create_relationship(
+                    source_node_id=patient_node.id,
+                    target_node_id=prescription_node.id,
+                    relationship_type=RelationshipType.PATIENT_VISITS_DOCTOR,
+                    properties={'date': result.prescription_date}
+                )
+                
+                # Process medications
+                for med in result.medications:
+                    med_name = med.get('name', '')
+                    if not med_name:
+                        continue
+                    
+                    # Create medication node
+                    med_node = kg_service.create_or_get_node(
+                        node_type=NodeType.MEDICATION,
+                        name=med_name,
+                        properties={
+                            'dosage': med.get('dosage'),
+                            'form': med.get('form'),
+                            'frequency': med.get('frequency')
+                        }
+                    )
+                    
+                    # Link patient to medication
+                    kg_service.create_relationship(
+                        source_node_id=patient_node.id,
+                        target_node_id=med_node.id,
+                        relationship_type=RelationshipType.PATIENT_HAS_MEDICATION,
+                        properties={
+                            'dosage': med.get('dosage'),
+                            'frequency': med.get('frequency'),
+                            'start_date': result.prescription_date
+                        }
+                    )
+                    
+                    # Add to patient medication history
+                    history_service.add_medication(
+                        patient_id=patient_id,
+                        medication_name=med_name,
+                        dosage=med.get('dosage'),
+                        frequency=med.get('frequency'),
+                        prescription_id=prescription_id,
+                        prescribing_doctor=result.doctor_name
+                    )
+                
+                # Process conditions/diagnoses
+                for diagnosis in result.diagnosis:
+                    if not diagnosis:
+                        continue
+                    
+                    # Create condition node
+                    condition_node = kg_service.create_or_get_node(
+                        node_type=NodeType.CONDITION,
+                        name=diagnosis,
+                        properties={'diagnosed_date': result.prescription_date}
+                    )
+                    
+                    # Link patient to condition
+                    kg_service.create_relationship(
+                        source_node_id=patient_node.id,
+                        target_node_id=condition_node.id,
+                        relationship_type=RelationshipType.PATIENT_HAS_CONDITION,
+                        properties={'diagnosed_date': result.prescription_date}
+                    )
+                    
+                    # Add to patient condition history
+                    history_service.add_condition(
+                        patient_id=patient_id,
+                        condition_name=diagnosis,
+                        onset_date=datetime.now(),
+                        diagnosed_by=result.doctor_name
+                    )
+                
+                db.commit()
+                
+            finally:
+                db.close()
+                
+        except ImportError as e:
+            logger.warning(f"Knowledge graph services not available: {e}")
+        except Exception as e:
+            logger.error(f"Error building knowledge graph: {e}")
+    
+    def _log_audit(self, document_id: str, prescription_id: int, result: ProcessingResult, patient_id: int = None):
+        """Log audit trail for the processing"""
+        try:
+            from backend.services.compliance_service import ComplianceService
+            from backend.models.audit import AuditAction
+            
+            db = SessionLocal()
+            try:
+                compliance = ComplianceService(db)
+                
+                # Log document processing
+                compliance.log_action(
+                    action=AuditAction.PROCESS,
+                    action_detail=f"Processed prescription document: {document_id}",
+                    entity_type="prescription",
+                    entity_id=prescription_id,
+                    user_name="system",
+                    new_value={
+                        'document_id': document_id,
+                        'patient_id': patient_id,
+                        'extraction_method': result.extraction_method,
+                        'confidence': result.confidence,
+                        'medications_count': len(result.medications),
+                        'needs_review': result.needs_review
+                    }
+                )
+                
+                # Log any safety alerts
+                if result.drug_interactions:
+                    compliance.log_action(
+                        action=AuditAction.REVIEW,
+                        action_detail=f"Safety alert: {len(result.drug_interactions)} drug interactions detected",
+                        entity_type="prescription",
+                        entity_id=prescription_id,
+                        user_name="system",
+                        new_value={
+                            'alert_type': 'drug_interaction',
+                            'interactions_count': len(result.drug_interactions)
+                        }
+                    )
+                
+                db.commit()
+                
+            finally:
+                db.close()
+                
+        except Exception as e:
+            logger.warning(f"Audit logging failed: {e}")
 
 
 # Create singleton

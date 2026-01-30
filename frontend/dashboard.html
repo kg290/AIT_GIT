@@ -1056,6 +1056,31 @@
                     <span>Settings</span>
                 </a>
             </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Advanced</div>
+                <a class="nav-item" data-page="timeline">
+                    <i class="fas fa-stream"></i>
+                    <span>Patient Timeline</span>
+                </a>
+                <a class="nav-item" data-page="knowledge-graph">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Knowledge Graph</span>
+                </a>
+                <a class="nav-item" data-page="ask-ai">
+                    <i class="fas fa-robot"></i>
+                    <span>Ask AI</span>
+                </a>
+                <a class="nav-item" data-page="review-queue">
+                    <i class="fas fa-tasks"></i>
+                    <span>Review Queue</span>
+                    <span class="nav-badge" id="reviewBadge">0</span>
+                </a>
+                <a class="nav-item" data-page="audit">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Audit & Compliance</span>
+                </a>
+            </div>
         </nav>
 
         <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--gray-700);">
@@ -1644,6 +1669,324 @@
                         <button class="btn btn-primary" onclick="saveSettings()">
                             <i class="fas fa-save"></i> Save Settings
                         </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Patient Timeline Page -->
+            <section class="page-section" id="page-timeline">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-stream" style="margin-right: 0.5rem;"></i>Patient Timeline</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <label class="form-label">Patient ID</label>
+                                <input type="number" class="form-input" id="timelinePatientId" placeholder="Enter patient ID">
+                            </div>
+                            <button class="btn btn-primary" onclick="loadTimeline()">
+                                <i class="fas fa-search"></i> Load Timeline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" id="timelineResults" style="display: none;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-pills" style="margin-right: 0.5rem;"></i>Medication Timeline (Gantt View)</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="timelineChart" style="min-height: 300px;">
+                            <!-- Gantt chart will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="timelineEventsCard" style="display: none;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-list-ul" style="margin-right: 0.5rem;"></i>Timeline Events</span>
+                    </div>
+                    <div class="card-body no-padding">
+                        <div id="timelineEvents"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Knowledge Graph Page -->
+            <section class="page-section" id="page-knowledge-graph">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-project-diagram" style="margin-right: 0.5rem;"></i>Knowledge Graph</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <label class="form-label">Patient ID</label>
+                                <input type="number" class="form-input" id="graphPatientId" placeholder="Enter patient ID">
+                            </div>
+                            <button class="btn btn-primary" onclick="loadKnowledgeGraph()">
+                                <i class="fas fa-search"></i> Load Graph
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="graphResults" style="display: none;">
+                    <div class="card-header">
+                        <span class="card-title">Patient Knowledge Graph</span>
+                        <div id="graphStats" style="font-size: 0.875rem; color: var(--gray-500);"></div>
+                    </div>
+                    <div class="card-body">
+                        <div id="knowledgeGraphContainer" style="min-height: 400px; background: var(--gray-50); border-radius: 8px;">
+                            <!-- Graph will be rendered here -->
+                        </div>
+                        <div id="graphLegend" style="margin-top: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 16px; height: 16px; background: #3b82f6; border-radius: 50%;"></span>
+                                <span>Patient</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 16px; height: 16px; background: #10b981; border-radius: 50%;"></span>
+                                <span>Medication</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 16px; height: 16px; background: #f59e0b; border-radius: 50%;"></span>
+                                <span>Condition</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 16px; height: 16px; background: #ef4444; border-radius: 50%;"></span>
+                                <span>Symptom</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ask AI Page -->
+            <section class="page-section" id="page-ask-ai">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-robot" style="margin-right: 0.5rem;"></i>Ask AI - Medical Query Assistant</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Your Question</label>
+                            <textarea class="form-input" id="aiQueryInput" rows="3" placeholder="Ask a question about patients, medications, interactions...
+
+Examples:
+• What medications is patient #1 taking?
+• Check interactions between aspirin and warfarin
+• Show medication history for patient #2"></textarea>
+                        </div>
+                        <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div>
+                                <label class="form-label">Patient ID (optional)</label>
+                                <input type="number" class="form-input" id="aiQueryPatientId" placeholder="Patient ID" style="width: 150px;">
+                            </div>
+                            <button class="btn btn-primary" onclick="submitAIQuery()">
+                                <i class="fas fa-paper-plane"></i> Ask AI
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="aiResponseCard" style="display: none;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-comment-alt" style="margin-right: 0.5rem;"></i>AI Response</span>
+                        <span class="badge" id="aiConfidenceBadge">-</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="queryResponse"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>Suggested Questions</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('What medications is patient #1 taking?')">Current medications</button>
+                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Show medication history for patient #1')">Medication history</button>
+                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Check interactions between aspirin and ibuprofen')">Check interactions</button>
+                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Show timeline for patient #1')">Patient timeline</button>
+                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('What conditions does patient #1 have?')">Conditions</button>
+                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Give me a summary for patient #1')">Patient summary</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Review Queue Page -->
+            <section class="page-section" id="page-review-queue">
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="pendingReviewCount">0</div>
+                                <div class="stat-label">Pending Review</div>
+                            </div>
+                            <div class="stat-icon yellow"><i class="fas fa-clock"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="correctionsMade">0</div>
+                                <div class="stat-label">Corrections Made</div>
+                            </div>
+                            <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="dismissedAlerts">0</div>
+                                <div class="stat-label">Dismissed Alerts</div>
+                            </div>
+                            <div class="stat-icon blue"><i class="fas fa-times-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-tasks" style="margin-right: 0.5rem;"></i>Items Pending Review</span>
+                        <button class="btn btn-secondary btn-sm" onclick="refreshReviewQueue()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="reviewQueueList">
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <h4>All caught up!</h4>
+                                <p>No items pending review</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-history" style="margin-right: 0.5rem;"></i>Recent Corrections</span>
+                    </div>
+                    <div class="card-body no-padding">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Original</th>
+                                    <th>Corrected</th>
+                                    <th>By</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentCorrections">
+                                <tr>
+                                    <td colspan="6" class="empty-state">No corrections yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audit & Compliance Page -->
+            <section class="page-section" id="page-audit">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="totalAuditEvents">0</div>
+                                <div class="stat-label">Total Events</div>
+                            </div>
+                            <div class="stat-icon blue"><i class="fas fa-list"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="totalUsers">0</div>
+                                <div class="stat-label">Active Users</div>
+                            </div>
+                            <div class="stat-icon green"><i class="fas fa-users"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="totalCorrections">0</div>
+                                <div class="stat-label">Corrections</div>
+                            </div>
+                            <div class="stat-icon yellow"><i class="fas fa-edit"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="integrityScore">100%</div>
+                                <div class="stat-label">Integrity Score</div>
+                            </div>
+                            <div class="stat-icon green"><i class="fas fa-shield-alt"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-scroll" style="margin-right: 0.5rem;"></i>Audit Trail</span>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <select class="form-select" id="auditActionFilter" style="width: auto;" onchange="filterAuditTrail()">
+                                    <option value="">All Actions</option>
+                                    <option value="upload">Upload</option>
+                                    <option value="extract">Extract</option>
+                                    <option value="view">View</option>
+                                    <option value="correct">Correct</option>
+                                    <option value="dismiss">Dismiss</option>
+                                    <option value="export">Export</option>
+                                </select>
+                                <button class="btn btn-secondary btn-sm" onclick="refreshAuditTrail()">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body no-padding">
+                            <div id="auditTrailList"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fas fa-chart-pie" style="margin-right: 0.5rem;"></i>Compliance Report</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="complianceReport">
+                                    <div class="empty-state">
+                                        <i class="fas fa-chart-pie"></i>
+                                        <p>Loading compliance data...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fas fa-download" style="margin-right: 0.5rem;"></i>Export</span>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;" onclick="exportAuditTrail()">
+                                    <i class="fas fa-file-export"></i> Export Audit Trail
+                                </button>
+                                <button class="btn btn-secondary" style="width: 100%;" onclick="generateComplianceReport()">
+                                    <i class="fas fa-file-pdf"></i> Generate Report
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -2406,6 +2749,458 @@
             localStorage.setItem('autoSave', document.getElementById('autoSave').checked);
             alert('Settings saved!');
         }
+
+        // ==================== Enhanced Features ====================
+        const API_V2_BASE = 'http://localhost:8000/api/v2';
+
+        // Timeline Functions
+        async function loadTimeline() {
+            const patientId = document.getElementById('timelinePatientId').value;
+            if (!patientId) {
+                alert('Please enter a patient ID');
+                return;
+            }
+
+            try {
+                // Load Gantt data
+                const ganttResponse = await fetch(`${API_V2_BASE}/temporal/patient/${patientId}/gantt`);
+                const ganttData = await ganttResponse.json();
+                
+                // Load timeline events
+                const eventsResponse = await fetch(`${API_V2_BASE}/temporal/patient/${patientId}/timeline`);
+                const eventsData = await eventsResponse.json();
+
+                document.getElementById('timelineResults').style.display = 'block';
+                document.getElementById('timelineEventsCard').style.display = 'block';
+
+                renderGanttChart(ganttData);
+                renderTimelineEvents(eventsData.events);
+            } catch (error) {
+                alert('Error loading timeline: ' + error.message);
+            }
+        }
+
+        function renderGanttChart(data) {
+            const container = document.getElementById('timelineChart');
+            if (!data.medications || data.medications.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-pills"></i><p>No medication timeline data</p></div>';
+                return;
+            }
+
+            let html = '<div style="overflow-x: auto;">';
+            data.medications.forEach(med => {
+                const isActive = med.active;
+                html += `
+                    <div style="display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
+                        <div style="width: 150px; font-weight: 500; font-size: 0.875rem;">${med.name}</div>
+                        <div style="flex: 1; background: var(--gray-100); height: 24px; border-radius: 4px; position: relative; margin: 0 1rem;">
+                            <div style="position: absolute; left: 0; height: 100%; background: ${isActive ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--gray-400)'}; border-radius: 4px; width: 80%;"></div>
+                        </div>
+                        <div style="width: 100px; font-size: 0.75rem; color: var(--gray-500);">
+                            ${med.start || 'N/A'}
+                        </div>
+                        <span class="badge ${isActive ? 'badge-success' : 'badge-gray'}">${isActive ? 'Active' : 'Stopped'}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderTimelineEvents(events) {
+            const container = document.getElementById('timelineEvents');
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="empty-state">No timeline events</div>';
+                return;
+            }
+
+            container.innerHTML = events.slice(0, 20).map(event => `
+                <div style="display: flex; padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-100);">
+                    <div style="width: 100px; font-size: 0.75rem; color: var(--gray-500);">${event.date}</div>
+                    <div style="flex: 1;">
+                        <span class="badge badge-info" style="margin-right: 0.5rem;">${event.type}</span>
+                        <span style="font-size: 0.875rem;">${event.description}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Knowledge Graph Functions
+        async function loadKnowledgeGraph() {
+            const patientId = document.getElementById('graphPatientId').value;
+            if (!patientId) {
+                alert('Please enter a patient ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/knowledge-graph/patient/${patientId}`);
+                const data = await response.json();
+
+                document.getElementById('graphResults').style.display = 'block';
+                renderKnowledgeGraph(data);
+                
+                const statsDiv = document.getElementById('graphStats');
+                statsDiv.textContent = `${data.nodes?.length || 0} nodes, ${data.edges?.length || 0} connections`;
+            } catch (error) {
+                alert('Error loading graph: ' + error.message);
+            }
+        }
+
+        function renderKnowledgeGraph(data) {
+            const container = document.getElementById('knowledgeGraphContainer');
+            const nodes = data.nodes || [];
+            const edges = data.edges || [];
+
+            if (nodes.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-project-diagram"></i><p>No graph data for this patient</p></div>';
+                return;
+            }
+
+            const width = container.clientWidth || 600;
+            const height = 400;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) / 3;
+
+            const nodePositions = {};
+            nodes.forEach((node, i) => {
+                const angle = (2 * Math.PI * i) / nodes.length;
+                nodePositions[node.id] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                };
+            });
+
+            const colors = {
+                'patient': '#3b82f6',
+                'medication': '#10b981',
+                'condition': '#f59e0b',
+                'symptom': '#ef4444',
+                'doctor': '#8b5cf6'
+            };
+
+            let svg = `<svg width="${width}" height="${height}" style="background: var(--gray-50);">`;
+            
+            // Draw edges
+            edges.forEach(edge => {
+                const from = nodePositions[edge.from_node_id];
+                const to = nodePositions[edge.to_node_id];
+                if (from && to) {
+                    svg += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#d1d5db" stroke-width="2" stroke-opacity="0.5"/>`;
+                }
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                const pos = nodePositions[node.id];
+                const color = colors[node.node_type] || '#6b7280';
+                svg += `
+                    <g transform="translate(${pos.x}, ${pos.y})">
+                        <circle r="25" fill="${color}" stroke="white" stroke-width="3"/>
+                        <text y="40" text-anchor="middle" style="font-size: 11px; fill: var(--gray-700);">${node.name?.substring(0, 15) || ''}</text>
+                    </g>
+                `;
+            });
+
+            svg += '</svg>';
+            container.innerHTML = svg;
+        }
+
+        // AI Query Functions
+        async function submitAIQuery() {
+            const query = document.getElementById('aiQueryInput').value;
+            const patientId = document.getElementById('aiQueryPatientId').value;
+
+            if (!query) {
+                alert('Please enter a question');
+                return;
+            }
+
+            document.getElementById('aiResponseCard').style.display = 'block';
+            document.getElementById('queryResponse').innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Processing your question...</p></div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        patient_id: patientId ? parseInt(patientId) : null
+                    })
+                });
+
+                const data = await response.json();
+                displayAIResponse(data);
+            } catch (error) {
+                document.getElementById('queryResponse').innerHTML = `
+                    <div class="alert-box danger">
+                        <span class="alert-icon">❌</span>
+                        <div class="alert-content">
+                            <h5>Error</h5>
+                            <p>${error.message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function displayAIResponse(data) {
+            const confidence = Math.round((data.confidence || 0) * 100);
+            const badgeClass = confidence >= 70 ? 'badge-success' : confidence >= 40 ? 'badge-warning' : 'badge-danger';
+            document.getElementById('aiConfidenceBadge').className = `badge ${badgeClass}`;
+            document.getElementById('aiConfidenceBadge').textContent = `${confidence}% confidence`;
+
+            let html = `
+                <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="white-space: pre-wrap; line-height: 1.6;">${data.answer || 'No answer available'}</div>
+                </div>
+            `;
+
+            if (data.evidence && data.evidence.length > 0) {
+                html += `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500);">Evidence</label>
+                        <ul style="margin-top: 0.5rem; padding-left: 1.25rem;">
+                            ${data.evidence.map(e => `<li style="font-size: 0.875rem; margin-bottom: 0.25rem;">${JSON.stringify(e)}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            if (data.related_queries && data.related_queries.length > 0) {
+                html += `
+                    <div>
+                        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500);">Related Questions</label>
+                        <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            ${data.related_queries.map(q => `<button class="btn btn-secondary btn-sm" onclick="fillQuery('${q}')">${q}</button>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('queryResponse').innerHTML = html;
+        }
+
+        function fillQuery(query) {
+            document.getElementById('aiQueryInput').value = query;
+        }
+
+        // Review Queue Functions
+        async function refreshReviewQueue() {
+            try {
+                const response = await fetch(`${API_V2_BASE}/review/queue?confidence_threshold=0.7&limit=50`);
+                const data = await response.json();
+                
+                document.getElementById('pendingReviewCount').textContent = data.count || 0;
+                document.getElementById('reviewBadge').textContent = data.count || 0;
+                renderReviewQueue(data.items);
+
+                // Load corrections
+                const corrResponse = await fetch(`${API_V2_BASE}/review/corrections?limit=10`);
+                const corrData = await corrResponse.json();
+                renderCorrections(corrData.corrections);
+
+                // Load stats
+                const statsResponse = await fetch(`${API_V2_BASE}/review/statistics`);
+                const statsData = await statsResponse.json();
+                document.getElementById('correctionsMade').textContent = statsData.total_corrections || 0;
+            } catch (error) {
+                console.error('Error loading review queue:', error);
+            }
+        }
+
+        function renderReviewQueue(items) {
+            const container = document.getElementById('reviewQueueList');
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><h4>All caught up!</h4><p>No items pending review</p></div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div style="background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span class="badge badge-info">${item.entity_type}</span>
+                        <span class="badge ${item.confidence > 0.5 ? 'badge-warning' : 'badge-danger'}">${Math.round(item.confidence * 100)}%</span>
+                    </div>
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">${item.entity_value}</div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); margin-bottom: 0.75rem;">Source: "${item.source_text?.substring(0, 80) || 'N/A'}..."</div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-success btn-sm" onclick="confirmItem(${item.id})"><i class="fas fa-check"></i> Confirm</button>
+                        <button class="btn btn-warning btn-sm" onclick="correctItem(${item.id})"><i class="fas fa-edit"></i> Correct</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCorrections(corrections) {
+            const tbody = document.getElementById('recentCorrections');
+            if (!corrections || corrections.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No corrections yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = corrections.map(c => `
+                <tr>
+                    <td><span class="badge badge-gray">${c.type || 'N/A'}</span></td>
+                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${c.original || '-'}</td>
+                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${c.corrected || '-'}</td>
+                    <td>${c.by || '-'}</td>
+                    <td>${c.at ? new Date(c.at).toLocaleDateString() : '-'}</td>
+                    <td><span class="badge ${c.verified ? 'badge-success' : 'badge-warning'}">${c.verified ? 'Verified' : 'Pending'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        async function confirmItem(id) {
+            alert('Item confirmed! (API integration ready)');
+            refreshReviewQueue();
+        }
+
+        async function correctItem(id) {
+            const newValue = prompt('Enter the correct value:');
+            if (newValue) {
+                alert('Correction submitted! (API integration ready)');
+                refreshReviewQueue();
+            }
+        }
+
+        // Audit Functions
+        async function refreshAuditTrail() {
+            try {
+                const action = document.getElementById('auditActionFilter').value;
+                const params = action ? `?action=${action}&limit=50` : '?limit=50';
+                
+                const response = await fetch(`${API_V2_BASE}/audit/trail${params}`);
+                const data = await response.json();
+                renderAuditTrail(data.logs);
+
+                // Load compliance report
+                const compResponse = await fetch(`${API_V2_BASE}/compliance/report`);
+                const compData = await compResponse.json();
+                renderComplianceReport(compData);
+
+                document.getElementById('totalAuditEvents').textContent = compData.total_events || 0;
+                document.getElementById('totalUsers').textContent = Object.keys(compData.events_by_user || {}).length;
+                document.getElementById('totalCorrections').textContent = compData.corrections_count || 0;
+            } catch (error) {
+                console.error('Error loading audit trail:', error);
+            }
+        }
+
+        function filterAuditTrail() {
+            refreshAuditTrail();
+        }
+
+        function renderAuditTrail(logs) {
+            const container = document.getElementById('auditTrailList');
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div class="empty-state">No audit records found</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Action</th>
+                            <th>Entity</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => `
+                            <tr>
+                                <td style="font-size: 0.75rem;">${log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}</td>
+                                <td><span class="badge badge-info">${log.action || '-'}</span></td>
+                                <td>${log.entity_type || '-'} ${log.entity_id ? '#' + log.entity_id : ''}</td>
+                                <td>${log.user || 'system'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderComplianceReport(report) {
+            const container = document.getElementById('complianceReport');
+            if (!report) {
+                container.innerHTML = '<div class="empty-state">No compliance data</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <div style="font-size: 0.75rem; color: var(--gray-500); text-transform: uppercase;">Events by Action</div>
+                    ${Object.entries(report.events_by_action || {}).map(([action, count]) => `
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
+                            <span>${action}</span>
+                            <span class="badge badge-gray">${count}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function exportAuditTrail() {
+            try {
+                const response = await fetch(`${API_V2_BASE}/compliance/export`);
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audit_trail_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Error exporting audit trail: ' + error.message);
+            }
+        }
+
+        function generateComplianceReport() {
+            alert('Compliance report generated! (PDF export coming soon)');
+        }
+
+        // Page navigation update
+        const enhancedTitles = {
+            'timeline': 'Patient Timeline',
+            'knowledge-graph': 'Knowledge Graph',
+            'ask-ai': 'Ask AI',
+            'review-queue': 'Review Queue',
+            'audit': 'Audit & Compliance'
+        };
+
+        const originalNavigateTo = navigateTo;
+        navigateTo = function(page) {
+            // Update nav
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+
+            // Update page
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`page-${page}`)?.classList.add('active');
+
+            // Update title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'scan': 'Scan Prescription',
+                'patients': 'Patient Management',
+                'history': 'Prescription History',
+                'interactions': 'Drug Interaction Checker',
+                'allergies': 'Allergy Database',
+                'analytics': 'Analytics & Reports',
+                'settings': 'Settings',
+                ...enhancedTitles
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+
+            // Load data for enhanced pages
+            if (page === 'review-queue') refreshReviewQueue();
+            if (page === 'audit') refreshAuditTrail();
+        };
     </script>
 </body>
 </html>

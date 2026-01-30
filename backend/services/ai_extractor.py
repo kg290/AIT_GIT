@@ -96,19 +96,13 @@ class PrescriptionData:
 class AIExtractor:
     """
     Intelligent prescription extractor 
-    Currently using enhanced regex parsing
-    Gemini AI disabled temporarily - focus on OCR quality first
+    Uses Gemini AI via Generative Language API or Vertex AI for intelligent extraction with regex fallback
     """
     
     def __init__(self, api_key: Optional[str] = None):
         self.client = None
         self.initialized = False
         self.model_name = "gemini-2.0-flash-001"
-        
-        # TEMPORARILY DISABLED - focusing on OCR quality first
-        # Gemini AI will be re-enabled once OCR results are cleaner
-        logger.info("AI extraction disabled - using enhanced regex parser")
-        return
         
         if not GENAI_AVAILABLE:
             logger.warning("Google GenAI not available - will use regex parser only")
@@ -118,14 +112,25 @@ class AIExtractor:
         if CREDENTIALS_FILE.exists():
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(CREDENTIALS_FILE)
         
-        # First try API key (simpler, works without special IAM permissions)
+        # Load .env file if exists
+        env_file = BASE_DIR / ".env"
+        if env_file.exists():
+            with open(env_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        os.environ[key.strip()] = value.strip()
+            logger.info("Loaded environment from .env file")
+        
+        # Try API key first (simpler, no IAM permissions needed)
         api_key = api_key or os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
         
         if api_key:
             try:
                 self.client = genai.Client(api_key=api_key)
                 self.initialized = True
-                logger.info(f"Google GenAI Client initialized with API key")
+                logger.info(f"✓ Google GenAI Client initialized with API key")
                 return
             except Exception as e:
                 logger.warning(f"Failed to initialize with API key: {e}")
@@ -138,12 +143,13 @@ class AIExtractor:
                 location=LOCATION
             )
             self.initialized = True
-            logger.info(f"Google GenAI Client initialized with Vertex AI (project: {PROJECT_ID})")
+            logger.info(f"✓ Google GenAI Client initialized with Vertex AI (project: {PROJECT_ID}, location: {LOCATION})")
+            return
         except Exception as e:
             logger.warning(f"Failed to initialize with Vertex AI: {e}")
         
         if not self.initialized:
-            logger.warning("AI not initialized - will use regex parser only. Set GEMINI_API_KEY environment variable or add Vertex AI permissions to service account.")
+            logger.warning("AI not initialized - will use regex parser only. Either set GEMINI_API_KEY or add 'Vertex AI User' role to service account.")
 
     
     def extract(self, ocr_text: str) -> PrescriptionData:
@@ -218,7 +224,7 @@ Return this exact JSON structure:
             "dosage": "dose amount (e.g., 500mg, 250ml)",
             "form": "Tablet/Capsule/Syrup/Injection/etc",
             "frequency": "how often (e.g., 3 times a day, once daily)",
-            "timing": "when to take (e.g., after meals, before bed)",
+            "timing": "when to take (e.g., ~ter meals, before bed)",
             "duration": "how long (e.g., 7 days, 2 weeks)",
             "quantity": "number of units if mentioned",
             "instructions": "any special instructions"
@@ -242,7 +248,8 @@ REMEMBER:
             # Use the new google-genai client API
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt
+                contents=prompt,
+                config={'automatic_function_calling': {'disable': True}}
             )
             json_str = response.text.strip()
             

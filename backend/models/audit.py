@@ -1,7 +1,7 @@
 """
 Audit and Correction Models - For compliance and tracking
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, ForeignKey, Enum as SQLEnum, Float, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, ForeignKey, Enum as SQLEnum, Float, Boolean, LargeBinary
 from datetime import datetime
 import enum
 from .database import Base
@@ -19,6 +19,8 @@ class AuditAction(enum.Enum):
     DISMISS = "dismiss"
     EXPORT = "export"
     QUERY = "query"
+    VIEW = "view"
+    EXTRACT = "extract"
 
 
 class AuditLog(Base):
@@ -40,6 +42,7 @@ class AuditLog(Base):
     user_id = Column(String(100), nullable=True)
     user_name = Column(String(200), nullable=True)
     user_role = Column(String(50), nullable=True)
+    user_ip = Column(String(50), nullable=True)  # Alias for ip_address
     ip_address = Column(String(50), nullable=True)
     user_agent = Column(String(500), nullable=True)
     
@@ -51,6 +54,9 @@ class AuditLog(Base):
     # Context
     session_id = Column(String(100), nullable=True)
     request_id = Column(String(100), nullable=True)
+    
+    # Integrity
+    data_hash = Column(String(64), nullable=True)  # SHA-256 hash for integrity verification
     
     # Timestamp (immutable)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -127,4 +133,4 @@ class Correction(Base):
         return f"<Correction {self.correction_type.value}: {self.original_value} -> {self.corrected_value}>"
 
 
-from sqlalchemy import Boolean, Float
+# Note: DocumentVersion is defined in backend.models.document to avoid duplicate table definitions

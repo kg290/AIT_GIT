@@ -117,10 +117,16 @@ class DocumentVersion(Base):
     cleaned_text = Column(Text, nullable=True)
     extracted_entities = Column(JSON, default=dict)
     
+    # Binary content for compliance (immutable storage)
+    content = Column(LargeBinary, nullable=True)
+    content_hash = Column(String(64), nullable=True)  # SHA-256 hash
+    content_type = Column(String(100), nullable=True)  # MIME type
+    
     # Change tracking
     change_type = Column(String(50), nullable=True)  # ocr_correction, entity_edit, etc.
     change_description = Column(Text, nullable=True)
     changed_by = Column(String(100), nullable=True)
+    created_by = Column(String(100), nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     

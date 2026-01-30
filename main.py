@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from backend.config import settings
 from backend.database import init_db
 from backend.api import documents, patients, query, analytics
+from backend.api.enhanced_routes import router as enhanced_router
 
 # Configure logging
 logging.basicConfig(
@@ -61,6 +62,7 @@ app.include_router(documents.router, prefix="/api")
 app.include_router(patients.router, prefix="/api")
 app.include_router(query.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(enhanced_router)  # Enhanced API v2 routes
 
 # Ensure directories exist
 settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
