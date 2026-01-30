@@ -17,6 +17,8 @@ from PIL import Image
 from backend.config import settings
 from backend.services.complete_processor import complete_processor
 from backend.services.unified_patient_service import get_unified_patient_service
+from backend.services.clinical_decision_support_service import clinical_decision_support
+from backend.services.treatment_outcome_service import treatment_outcome_service, OutcomeType, VitalType
 
 logger = logging.getLogger(__name__)
 
@@ -1072,3 +1074,586 @@ def _update_patient_extra_info(
             session.close()
     except Exception as e:
         logger.warning(f"Failed to update extra patient info: {e}")
+
+
+# ========================================
+# CLINICAL DECISION SUPPORT ENDPOINTS
+# ========================================
+
+@router.post("/patient/{patient_uid}/clinical-decision-support")
+async def get_clinical_decision_support(
+    patient_uid: str
+):
+    """
+    Get AI-powered clinical decision support for a patient.
+    
+    Provides:
+    - Evidence-based treatment alternatives
+    - Guideline compliance scoring
+    - Pharmacogenomic alerts
+    - Treatment optimization suggestions
+    
+    This goes beyond obvious insights to provide actionable clinical intelligence.
+    """
+    try:
+        # Get unified patient service
+        patient_service = get_unified_patient_service()
+        
+        # Get patient data
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get current medications
+        medications = []
+        active_meds = patient_service.get_patient_medications(patient_uid, active_only=True)
+        for med in active_meds:
+            medications.append(med.get('name', '') or med.get('drug_name', ''))
+        
+        # Get conditions
+        conditions = patient.get('conditions', [])
+        if isinstance(conditions, str):
+            conditions = [conditions]
+        
+        # Build patient profile
+        patient_profile = {
+            'age': patient.get('age') or 50,
+            'gender': patient.get('gender') or 'unknown',
+            'bmi': patient.get('bmi') or 25,
+            'conditions': conditions,
+            'allergies': patient.get('allergies') or []
+        }
+        
+        # Generate clinical decision support report
+        report = clinical_decision_support.generate_full_report(
+            patient_id=patient_uid,
+            medications=medications,
+            conditions=conditions,
+            patient_profile=patient_profile,
+            genetic_data=patient.get('genetic_data', {})  # If available
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'clinical_decision_support': report.to_dict(),
+            'summary': _generate_cds_summary(report)
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get clinical decision support: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/guideline-compliance")
+async def get_guideline_compliance(
+    patient_uid: str
+):
+    """
+    Get guideline compliance assessment for a patient's current treatment.
+    
+    Scores prescription alignment with medical guidelines (AHA, ADA, ACC, etc.)
+    and identifies gaps in care.
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get medications
+        medications = []
+        active_meds = patient_service.get_patient_medications(patient_uid, active_only=True)
+        for med in active_meds:
+            medications.append(med.get('name', '') or med.get('drug_name', ''))
+        
+        conditions = patient.get('conditions', [])
+        if isinstance(conditions, str):
+            conditions = [conditions]
+        
+        patient_profile = {
+            'age': patient.get('age', 50),
+            'gender': patient.get('gender', 'unknown')
+        }
+        
+        # Get compliance assessments
+        assessments = clinical_decision_support.assess_guideline_compliance(
+            medications=medications,
+            conditions=conditions,
+            patient_profile=patient_profile
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'conditions_assessed': conditions,
+            'medications_assessed': medications,
+            'guideline_compliance': [a.to_dict() for a in assessments],
+            'overall_score': sum(a.overall_score for a in assessments) / len(assessments) if assessments else 0
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get guideline compliance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/treatment-alternatives")
+async def get_treatment_alternatives(
+    patient_uid: str
+):
+    """
+    Get evidence-based treatment alternatives for current medications.
+    
+    Provides alternatives based on:
+    - Better outcomes for patient's specific profile
+    - Newer guideline recommendations
+    - Cost/benefit considerations
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get medications
+        medications = []
+        active_meds = patient_service.get_patient_medications(patient_uid, active_only=True)
+        for med in active_meds:
+            medications.append(med.get('name', '') or med.get('drug_name', ''))
+        
+        conditions = patient.get('conditions', [])
+        patient_profile = {
+            'age': patient.get('age', 50),
+            'conditions': conditions
+        }
+        
+        # Get alternatives
+        alternatives = clinical_decision_support.get_treatment_alternatives(
+            medications=medications,
+            conditions=conditions,
+            patient_profile=patient_profile
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'current_medications': medications,
+            'alternatives': [a.to_dict() for a in alternatives],
+            'total_alternatives_found': len(alternatives)
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get treatment alternatives: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/pharmacogenomic-alerts")
+async def get_pharmacogenomic_alerts(
+    patient_uid: str
+):
+    """
+    Get pharmacogenomic alerts for patient's medications.
+    
+    Identifies drugs that may require:
+    - Genetic testing consideration
+    - Dosage adjustments based on metabolism
+    - Alternative drug selection
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get medications
+        medications = []
+        active_meds = patient_service.get_patient_medications(patient_uid, active_only=True)
+        for med in active_meds:
+            medications.append(med.get('name', '') or med.get('drug_name', ''))
+        
+        # Get genetic data if available
+        genetic_data = patient.get('genetic_data', {})
+        
+        # Get alerts
+        alerts = clinical_decision_support.get_pharmacogenomic_alerts(
+            medications=medications,
+            genetic_data=genetic_data
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'medications_assessed': medications,
+            'genetic_data_available': bool(genetic_data),
+            'pharmacogenomic_alerts': [a.to_dict() for a in alerts],
+            'total_alerts': len(alerts)
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get pharmacogenomic alerts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ========================================
+# TREATMENT OUTCOME TRACKING ENDPOINTS
+# ========================================
+
+@router.post("/patient/{patient_uid}/record-outcome")
+async def record_treatment_outcome(
+    patient_uid: str,
+    medication: str = Form(...),
+    outcome_type: str = Form(...),
+    description: str = Form(...),
+    prescription_id: Optional[str] = Form(None),
+    side_effects: Optional[str] = Form(None)  # Comma-separated
+):
+    """
+    Record a treatment outcome for a patient.
+    
+    Links prescription to clinical outcome (improved, resolved, worsened, etc.)
+    
+    outcome_type: improved, stable, worsened, resolved, discontinued, adverse_event
+    """
+    try:
+        # Validate outcome type
+        try:
+            outcome_enum = OutcomeType(outcome_type.lower())
+        except ValueError:
+            valid_types = [t.value for t in OutcomeType]
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid outcome type. Valid: {valid_types}"
+            )
+        
+        # Parse side effects
+        side_effects_list = []
+        if side_effects:
+            side_effects_list = [s.strip() for s in side_effects.split(',') if s.strip()]
+        
+        # Record outcome
+        outcome = treatment_outcome_service.record_outcome(
+            patient_id=patient_uid,
+            prescription_id=prescription_id or f"RX-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            medication=medication,
+            outcome_type=outcome_enum,
+            description=description,
+            side_effects=side_effects_list
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'message': 'Treatment outcome recorded successfully',
+            'outcome': outcome.to_dict()
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to record outcome: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/patient/{patient_uid}/record-vital")
+async def record_vital_reading(
+    patient_uid: str,
+    vital_type: str = Form(...),
+    value: float = Form(...),
+    unit: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None)
+):
+    """
+    Record a vital sign reading for a patient.
+    
+    vital_type options: bp_systolic, bp_diastolic, heart_rate, blood_glucose, 
+                        hba1c, ldl_cholesterol, hdl_cholesterol, weight, 
+                        pain_score, egfr, creatinine, etc.
+    """
+    try:
+        # Validate vital type
+        try:
+            vital_enum = VitalType(vital_type.lower())
+        except ValueError:
+            valid_types = [t.value for t in VitalType]
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid vital type. Valid: {valid_types}"
+            )
+        
+        # Default units
+        default_units = {
+            'bp_systolic': 'mmHg',
+            'bp_diastolic': 'mmHg',
+            'heart_rate': 'bpm',
+            'blood_glucose': 'mg/dL',
+            'hba1c': '%',
+            'ldl_cholesterol': 'mg/dL',
+            'hdl_cholesterol': 'mg/dL',
+            'weight': 'kg',
+            'pain_score': '0-10',
+            'egfr': 'mL/min/1.73m²'
+        }
+        
+        final_unit = unit or default_units.get(vital_type.lower(), 'units')
+        
+        # Record vital
+        reading = treatment_outcome_service.record_vital_reading(
+            patient_id=patient_uid,
+            vital_type=vital_enum,
+            value=value,
+            unit=final_unit,
+            notes=notes
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'message': 'Vital reading recorded successfully',
+            'reading': reading.to_dict()
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to record vital: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/outcome-timeline")
+async def get_outcome_timeline(
+    patient_uid: str,
+    months: int = 12
+):
+    """
+    Get treatment outcome timeline for a patient.
+    
+    Shows:
+    - All recorded treatment outcomes
+    - Vital sign trends over time
+    - Overall health trend analysis
+    """
+    try:
+        timeline = treatment_outcome_service.get_patient_outcome_timeline(
+            patient_id=patient_uid,
+            months=months
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'timeline': timeline.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to get outcome timeline: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/treatment-prediction")
+async def get_treatment_prediction(
+    patient_uid: str,
+    medication: str,
+    condition: Optional[str] = None
+):
+    """
+    Get ML-based treatment success prediction.
+    
+    Predicts likelihood of treatment success based on:
+    - Patient profile and history
+    - Historical outcome data from similar patients
+    - Known success/failure factors
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Build patient profile
+        conditions = patient.get('conditions', [])
+        patient_profile = {
+            'age': patient.get('age', 50),
+            'gender': patient.get('gender', 'unknown'),
+            'bmi': patient.get('bmi', 25),
+            'conditions': conditions,
+            'smoker': patient.get('smoker', False),
+            'adherence_rate': patient.get('adherence_rate', 0.7)
+        }
+        
+        # Use provided condition or first from patient's conditions
+        target_condition = condition or (conditions[0] if conditions else 'general')
+        
+        # Get prediction
+        prediction = treatment_outcome_service.predict_treatment_success(
+            medication=medication,
+            condition=target_condition,
+            patient_profile=patient_profile
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'prediction': prediction.to_dict()
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get treatment prediction: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patient/{patient_uid}/comprehensive-outcome-report")
+async def get_comprehensive_outcome_report(
+    patient_uid: str
+):
+    """
+    Get comprehensive outcome analysis and predictions for a patient.
+    
+    Combines:
+    - Outcome timeline
+    - Treatment predictions for all current medications
+    - Vital sign trend analysis
+    - Actionable insights
+    """
+    try:
+        patient_service = get_unified_patient_service()
+        
+        patient = patient_service.get_patient_by_uid(patient_uid)
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
+        
+        # Get medications
+        medications = []
+        active_meds = patient_service.get_patient_medications(patient_uid, active_only=True)
+        for med in active_meds:
+            medications.append(med.get('name', '') or med.get('drug_name', ''))
+        
+        conditions = patient.get('conditions', [])
+        
+        patient_profile = {
+            'age': patient.get('age', 50),
+            'gender': patient.get('gender', 'unknown'),
+            'bmi': patient.get('bmi', 25),
+            'conditions': conditions
+        }
+        
+        # Generate comprehensive report
+        report = treatment_outcome_service.generate_comprehensive_outcome_report(
+            patient_id=patient_uid,
+            medications=medications,
+            conditions=conditions,
+            patient_profile=patient_profile
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'report': report
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get comprehensive report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/patient/{patient_uid}/analyze-treatment-vitals")
+async def analyze_treatment_vital_changes(
+    patient_uid: str,
+    medication: str = Form(...),
+    start_date: str = Form(...),
+    end_date: Optional[str] = Form(None)
+):
+    """
+    Analyze vital sign changes during a treatment period.
+    
+    Generates analysis like:
+    "Started Amlodipine 3 months ago → BP improved from 160/100 to 130/85"
+    """
+    try:
+        analysis = treatment_outcome_service.analyze_vital_changes_for_treatment(
+            patient_id=patient_uid,
+            medication=medication,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        return JSONResponse(content={
+            'success': True,
+            'patient_uid': patient_uid,
+            'analysis': analysis
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to analyze vital changes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _generate_cds_summary(report) -> Dict:
+    """Generate a natural language summary of clinical decision support report"""
+    summary = {
+        'key_findings': [],
+        'action_items': [],
+        'guideline_score': None
+    }
+    
+    # Add alternatives count
+    if report.alternatives:
+        summary['key_findings'].append(
+            f"Found {len(report.alternatives)} evidence-based treatment alternatives to consider"
+        )
+        for alt in report.alternatives[:2]:
+            summary['action_items'].append(
+                f"Consider {alt.alternative_drug}: {alt.reason}"
+            )
+    
+    # Add guideline compliance
+    if report.guideline_compliance:
+        score = report.guideline_compliance.overall_score
+        summary['guideline_score'] = score
+        
+        if score >= 80:
+            summary['key_findings'].append(
+                f"Prescription {score:.0f}% aligned with {report.guideline_compliance.guideline_source}"
+            )
+        else:
+            summary['key_findings'].append(
+                f"Guideline alignment: {score:.0f}% - opportunities for optimization"
+            )
+            for gap in report.guideline_compliance.gaps[:2]:
+                summary['action_items'].append(gap.get('item', ''))
+    
+    # Add pharmacogenomic alerts
+    if report.pharmacogenomic_alerts:
+        summary['key_findings'].append(
+            f"{len(report.pharmacogenomic_alerts)} pharmacogenomic considerations identified"
+        )
+        for alert in report.pharmacogenomic_alerts[:2]:
+            summary['action_items'].append(
+                f"{alert.drug}: {alert.recommendation}"
+            )
+    
+    # Add optimization suggestions
+    if report.optimization_suggestions:
+        high_priority = [s for s in report.optimization_suggestions if s.get('priority') == 'high']
+        if high_priority:
+            summary['key_findings'].append(
+                f"{len(high_priority)} high-priority treatment optimizations recommended"
+            )
+            for opt in high_priority[:2]:
+                summary['action_items'].append(opt.get('recommendation', opt.get('title', '')))
+    
+    return summary
+

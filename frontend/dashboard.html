@@ -1405,6 +1405,18 @@
             </div>
 
             <div class="nav-section">
+                <div class="nav-section-title">Clinical Intelligence</div>
+                <a class="nav-item" data-page="clinical-decision">
+                    <i class="fas fa-brain"></i>
+                    <span>Clinical Decision Support</span>
+                </a>
+                <a class="nav-item" data-page="treatment-outcomes">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>Treatment Outcomes</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
                 <div class="nav-section-title">Advanced</div>
                 <a class="nav-item" data-page="ask-ai">
                     <i class="fas fa-robot"></i>
@@ -2675,6 +2687,301 @@ Aspirin, 75mg, once daily"></textarea>
                         <button class="btn btn-primary" onclick="saveSettings()">
                             <i class="fas fa-save"></i> Save Settings
                         </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clinical Decision Support Page -->
+            <section class="page-section" id="page-clinical-decision">
+                <!-- Header Stats -->
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="stat-value" style="color: white;">AI-Powered</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Clinical Intelligence</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fas fa-book-medical"></i></div>
+                        <div class="stat-value">15+</div>
+                        <div class="stat-label">Medical Guidelines</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-dna"></i></div>
+                        <div class="stat-value">50+</div>
+                        <div class="stat-label">Pharmacogenomic Alerts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-lightbulb"></i></div>
+                        <div class="stat-value">100+</div>
+                        <div class="stat-label">Treatment Alternatives</div>
+                    </div>
+                </div>
+
+                <!-- Patient Selector -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-user-md" style="margin-right: 0.5rem;"></i>Select Patient for Clinical Decision Support</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label class="form-label">Patient UID</label>
+                                <input type="text" class="form-input" id="cdsPatientUid" placeholder="Enter patient UID (e.g., PT20260130-A1B2)">
+                            </div>
+                            <button class="btn btn-primary" onclick="loadClinicalDecisionSupport()">
+                                <i class="fas fa-brain"></i> Analyze Patient
+                            </button>
+                        </div>
+                        <div id="cdsLoadStatus" style="margin-top: 0.75rem; display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Results Container -->
+                <div id="cdsResultsContainer" style="display: none;">
+                    <!-- Guideline Compliance Score -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-clipboard-check" style="margin-right: 0.5rem; color: #10b981;"></i>Guideline Compliance Assessment</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem;">
+                                <div style="text-align: center;">
+                                    <div id="cdsComplianceScore" style="font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">--</div>
+                                    <div style="font-size: 0.875rem; color: var(--gray-500);">Compliance Score</div>
+                                </div>
+                                <div id="cdsComplianceGauge" style="flex: 1; height: 12px; background: var(--gray-200); border-radius: 6px; overflow: hidden;">
+                                    <div id="cdsComplianceFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #059669); transition: width 1s ease;"></div>
+                                </div>
+                            </div>
+                            <div id="cdsGuidelineDetails"></div>
+                        </div>
+                    </div>
+
+                    <!-- Treatment Alternatives -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-exchange-alt" style="margin-right: 0.5rem; color: #3b82f6;"></i>Evidence-Based Treatment Alternatives</span>
+                            <span class="badge badge-info" id="cdsAlternativesCount">0 alternatives</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                                These are NOT "obvious" recommendations. Each alternative is backed by clinical trial data and medical guidelines, 
+                                considering the patient's specific profile.
+                            </p>
+                            <div id="cdsAlternativesList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pharmacogenomic Alerts -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-dna" style="margin-right: 0.5rem; color: #8b5cf6;"></i>Pharmacogenomic Considerations</span>
+                            <span class="badge badge-purple" id="cdsPgxCount">0 alerts</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                                Genetic factors that may affect drug response. Consider genetic testing for high-risk medications.
+                            </p>
+                            <div id="cdsPgxAlertsList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Optimization Suggestions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-lightbulb" style="margin-right: 0.5rem; color: #f59e0b;"></i>Treatment Optimization Opportunities</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="cdsOptimizationsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Treatment Outcomes Page -->
+            <section class="page-section" id="page-treatment-outcomes">
+                <!-- Header Stats -->
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div class="stat-value" style="color: white;">Track</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Treatment Outcomes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-chart-line"></i></div>
+                        <div class="stat-value">Vitals</div>
+                        <div class="stat-label">Trend Analysis</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fas fa-robot"></i></div>
+                        <div class="stat-value">ML</div>
+                        <div class="stat-label">Success Prediction</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow"><i class="fas fa-link"></i></div>
+                        <div class="stat-value">Link</div>
+                        <div class="stat-label">Rx to Outcomes</div>
+                    </div>
+                </div>
+
+                <!-- Patient Selector -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-user" style="margin-right: 0.5rem;"></i>Patient Outcome Tracking</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label class="form-label">Patient UID</label>
+                                <input type="text" class="form-input" id="outcomePatientUid" placeholder="Enter patient UID">
+                            </div>
+                            <button class="btn btn-primary" onclick="loadOutcomeReport()">
+                                <i class="fas fa-chart-line"></i> Load Outcomes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Record Outcome Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-plus-circle" style="margin-right: 0.5rem; color: #10b981;"></i>Record Treatment Outcome</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Medication</label>
+                                <input type="text" class="form-input" id="outcomeRecordMed" placeholder="e.g., Amlodipine">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Outcome Type</label>
+                                <select class="form-select" id="outcomeRecordType">
+                                    <option value="improved">✅ Improved</option>
+                                    <option value="resolved">🎉 Resolved</option>
+                                    <option value="stable">➡️ Stable</option>
+                                    <option value="worsened">⚠️ Worsened</option>
+                                    <option value="discontinued">🛑 Discontinued</option>
+                                    <option value="adverse_event">❌ Adverse Event</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Side Effects (optional)</label>
+                                <input type="text" class="form-input" id="outcomeRecordSideEffects" placeholder="e.g., Headache, Dizziness">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Outcome Description</label>
+                            <textarea class="form-input" id="outcomeRecordDesc" rows="2" placeholder="e.g., BP improved from 160/100 to 130/85 over 3 months"></textarea>
+                        </div>
+                        <button class="btn btn-success" onclick="recordOutcome()">
+                            <i class="fas fa-save"></i> Record Outcome
+                        </button>
+                        <div id="outcomeRecordStatus" style="margin-top: 0.75rem; display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Record Vital Reading -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-heartbeat" style="margin-right: 0.5rem; color: #ef4444;"></i>Record Vital Reading</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Vital Type</label>
+                                <select class="form-select" id="vitalRecordType">
+                                    <option value="bp_systolic">BP Systolic</option>
+                                    <option value="bp_diastolic">BP Diastolic</option>
+                                    <option value="heart_rate">Heart Rate</option>
+                                    <option value="blood_glucose">Blood Glucose</option>
+                                    <option value="hba1c">HbA1c</option>
+                                    <option value="ldl_cholesterol">LDL Cholesterol</option>
+                                    <option value="hdl_cholesterol">HDL Cholesterol</option>
+                                    <option value="weight">Weight</option>
+                                    <option value="pain_score">Pain Score (0-10)</option>
+                                    <option value="egfr">eGFR</option>
+                                    <option value="creatinine">Creatinine</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Value</label>
+                                <input type="number" class="form-input" id="vitalRecordValue" placeholder="e.g., 130" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Unit (auto-filled)</label>
+                                <input type="text" class="form-input" id="vitalRecordUnit" placeholder="mmHg" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Notes (optional)</label>
+                                <input type="text" class="form-input" id="vitalRecordNotes" placeholder="e.g., Fasting">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="recordVital()">
+                            <i class="fas fa-plus"></i> Record Vital
+                        </button>
+                        <div id="vitalRecordStatus" style="margin-top: 0.75rem; display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Treatment Prediction -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-robot" style="margin-right: 0.5rem; color: #8b5cf6;"></i>ML Treatment Success Prediction</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Medication to Predict</label>
+                                <input type="text" class="form-input" id="predictionMed" placeholder="e.g., Metformin">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Target Condition</label>
+                                <input type="text" class="form-input" id="predictionCondition" placeholder="e.g., Type 2 Diabetes">
+                            </div>
+                            <div style="display: flex; align-items: flex-end;">
+                                <button class="btn btn-purple" onclick="predictTreatmentSuccess()" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); width: 100%;">
+                                    <i class="fas fa-magic"></i> Predict Success
+                                </button>
+                            </div>
+                        </div>
+                        <div id="predictionResults" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Outcome Timeline -->
+                <div id="outcomeTimelineContainer" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-history" style="margin-right: 0.5rem;"></i>Treatment Outcome Timeline</span>
+                            <span class="badge" id="outcomeHealthTrend">-</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="outcomeTimelineList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vital Trends -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-chart-area" style="margin-right: 0.5rem;"></i>Vital Sign Trends</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="vitalTrendsContainer"></div>
+                        </div>
+                    </div>
+
+                    <!-- Treatment Insights -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-lightbulb" style="margin-right: 0.5rem; color: #f59e0b;"></i>Treatment Insights</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="treatmentInsightsList"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -5724,7 +6031,9 @@ Aspirin, 81mg, once daily"></textarea>
             'knowledge-graph': 'Knowledge Graph',
             'ask-ai': 'Ask AI',
             'review-queue': 'Review Queue',
-            'audit': 'Audit & Compliance'
+            'audit': 'Audit & Compliance',
+            'clinical-decision': 'Clinical Decision Support',
+            'treatment-outcomes': 'Treatment Outcomes'
         };
 
         const originalNavigateTo = navigateTo;
@@ -6057,6 +6366,581 @@ Aspirin, 81mg, once daily"></textarea>
             `;
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
+        }
+
+        // ========================================
+        // Clinical Decision Support Functions
+        // ========================================
+
+        async function loadClinicalDecisionSupport() {
+            const uid = document.getElementById('cdsPatientUid').value.trim();
+            const statusEl = document.getElementById('cdsLoadStatus');
+            
+            if (!uid) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = '<span style="color: #dc2626;"><i class="fas fa-exclamation-circle"></i> Please enter a patient UID</span>';
+                return;
+            }
+            
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> Analyzing patient... This may take a moment.</span>';
+            
+            try {
+                const response = await fetch(`${STAFF_API}/patient/${uid}/clinical-decision-support`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.detail || 'Failed to load clinical decision support');
+                }
+                
+                displayClinicalDecisionSupport(data);
+                
+                statusEl.innerHTML = '<span style="color: #059669;"><i class="fas fa-check-circle"></i> Analysis complete!</span>';
+                setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+                
+            } catch (error) {
+                console.error('CDS Error:', error);
+                statusEl.innerHTML = `<span style="color: #dc2626;"><i class="fas fa-times-circle"></i> ${error.message}</span>`;
+            }
+        }
+
+        function displayClinicalDecisionSupport(data) {
+            const cds = data.clinical_decision_support;
+            const summary = data.summary;
+            
+            document.getElementById('cdsResultsContainer').style.display = 'block';
+            
+            // Guideline Compliance
+            const compliance = cds.guideline_compliance;
+            if (compliance) {
+                const score = compliance.overall_score || 0;
+                document.getElementById('cdsComplianceScore').textContent = score.toFixed(0) + '%';
+                document.getElementById('cdsComplianceFill').style.width = score + '%';
+                
+                // Color the score based on value
+                const scoreEl = document.getElementById('cdsComplianceScore');
+                if (score >= 80) {
+                    scoreEl.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                } else if (score >= 60) {
+                    scoreEl.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                } else {
+                    scoreEl.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                }
+                scoreEl.style['-webkit-background-clip'] = 'text';
+                scoreEl.style['-webkit-text-fill-color'] = 'transparent';
+                
+                // Guideline details
+                let detailsHtml = `
+                    <div style="margin-bottom: 1rem;">
+                        <span class="badge badge-info">${compliance.guideline_source || 'Multiple Guidelines'}</span>
+                        <span style="margin-left: 0.5rem; color: var(--gray-500); font-size: 0.875rem;">${compliance.guideline_version || '2024-2025'}</span>
+                    </div>
+                `;
+                
+                if (compliance.compliant_items?.length > 0) {
+                    detailsHtml += `<div style="margin-bottom: 1rem;"><strong style="color: #059669;">✓ Compliant:</strong>`;
+                    detailsHtml += `<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">`;
+                    compliance.compliant_items.forEach(item => {
+                        detailsHtml += `<span class="badge badge-success">${item.item}</span>`;
+                    });
+                    detailsHtml += `</div></div>`;
+                }
+                
+                if (compliance.non_compliant_items?.length > 0) {
+                    detailsHtml += `<div><strong style="color: #dc2626;">✗ Gaps Identified:</strong>`;
+                    detailsHtml += `<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">`;
+                    compliance.non_compliant_items.forEach(item => {
+                        detailsHtml += `<span class="badge badge-danger">${item.item}</span>`;
+                    });
+                    detailsHtml += `</div></div>`;
+                }
+                
+                document.getElementById('cdsGuidelineDetails').innerHTML = detailsHtml;
+            }
+            
+            // Treatment Alternatives
+            const alternatives = cds.alternatives || [];
+            document.getElementById('cdsAlternativesCount').textContent = alternatives.length + ' alternatives';
+            
+            if (alternatives.length > 0) {
+                let altHtml = '';
+                alternatives.forEach(alt => {
+                    altHtml += `
+                        <div style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--gray-500);">Current: <strong>${alt.current_drug}</strong></div>
+                                    <div style="font-size: 1.125rem; font-weight: 700; color: #1d4ed8;">
+                                        <i class="fas fa-arrow-right" style="font-size: 0.75rem; margin-right: 0.5rem;"></i>
+                                        Consider: ${alt.alternative_drug}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="badge badge-info">Level ${alt.evidence_level}</span>
+                                </div>
+                            </div>
+                            <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 0.5rem;">${alt.reason}</div>
+                                <div style="font-size: 0.875rem; color: var(--gray-600);">${alt.benefit_summary}</div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                                <span style="color: var(--gray-500);"><i class="fas fa-book"></i> ${alt.guideline_source}</span>
+                            </div>
+                            ${alt.patient_criteria?.length > 0 ? `
+                                <div style="margin-top: 0.75rem;">
+                                    <span style="font-size: 0.75rem; color: #059669;"><i class="fas fa-check-circle"></i> Patient criteria met:</span>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.25rem;">
+                                        ${alt.patient_criteria.map(c => `<span class="badge badge-success" style="font-size: 0.7rem;">${c}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                document.getElementById('cdsAlternativesList').innerHTML = altHtml;
+            } else {
+                document.getElementById('cdsAlternativesList').innerHTML = '<p style="color: var(--gray-500);">No specific alternatives recommended for current medications.</p>';
+            }
+            
+            // Pharmacogenomic Alerts
+            const pgxAlerts = cds.pharmacogenomic_alerts || [];
+            document.getElementById('cdsPgxCount').textContent = pgxAlerts.length + ' alerts';
+            
+            if (pgxAlerts.length > 0) {
+                let pgxHtml = '';
+                pgxAlerts.forEach(alert => {
+                    pgxHtml += `
+                        <div style="border-left: 4px solid #8b5cf6; background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-radius: 0 12px 12px 0; padding: 1rem; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <div style="font-weight: 600; color: #5b21b6;">
+                                    <i class="fas fa-dna" style="margin-right: 0.5rem;"></i>${alert.drug}
+                                </div>
+                                <span class="badge badge-purple">Gene: ${alert.gene}</span>
+                            </div>
+                            <div style="font-size: 0.875rem; color: #6b21a8; margin-bottom: 0.5rem;">
+                                <strong>Phenotype:</strong> ${alert.phenotype}
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.5rem;">
+                                <strong>Clinical Implication:</strong> ${alert.clinical_implication}
+                            </div>
+                            <div style="background: white; border-radius: 6px; padding: 0.75rem; font-size: 0.875rem;">
+                                <strong style="color: #059669;"><i class="fas fa-lightbulb"></i> Recommendation:</strong> ${alert.recommendation}
+                            </div>
+                            ${alert.alternative_drugs?.length > 0 ? `
+                                <div style="margin-top: 0.5rem; font-size: 0.8rem;">
+                                    <strong>Alternatives:</strong> ${alert.alternative_drugs.join(', ')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                document.getElementById('cdsPgxAlertsList').innerHTML = pgxHtml;
+            } else {
+                document.getElementById('cdsPgxAlertsList').innerHTML = '<p style="color: var(--gray-500);">No pharmacogenomic alerts for current medications.</p>';
+            }
+            
+            // Optimization Suggestions
+            const optimizations = cds.optimization_suggestions || [];
+            if (optimizations.length > 0) {
+                let optHtml = '';
+                optimizations.forEach(opt => {
+                    const priorityColors = {
+                        'high': { bg: '#fee2e2', border: '#ef4444', text: '#991b1b' },
+                        'medium': { bg: '#fef3c7', border: '#f59e0b', text: '#92400e' },
+                        'low': { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af' }
+                    };
+                    const colors = priorityColors[opt.priority] || priorityColors.medium;
+                    
+                    optHtml += `
+                        <div style="border-left: 4px solid ${colors.border}; background: ${colors.bg}; border-radius: 0 12px 12px 0; padding: 1rem; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="font-weight: 600; color: ${colors.text};">
+                                    <i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>${opt.title}
+                                </div>
+                                <span class="badge" style="background: ${colors.border}; color: white;">${opt.priority.toUpperCase()}</span>
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.75rem;">${opt.description}</div>
+                            <div style="background: white; border-radius: 6px; padding: 0.75rem; font-size: 0.875rem;">
+                                <strong style="color: #059669;">Recommendation:</strong> ${opt.recommendation}
+                            </div>
+                            ${opt.evidence ? `
+                                <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray-500);">
+                                    <i class="fas fa-book"></i> ${opt.evidence}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                document.getElementById('cdsOptimizationsList').innerHTML = optHtml;
+            } else {
+                document.getElementById('cdsOptimizationsList').innerHTML = '<p style="color: var(--gray-500); text-align: center;">✅ No optimization opportunities identified - treatment appears well-optimized!</p>';
+            }
+        }
+
+        // ========================================
+        // Treatment Outcome Functions
+        // ========================================
+
+        // Update vital unit when type changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const vitalTypeSelect = document.getElementById('vitalRecordType');
+            if (vitalTypeSelect) {
+                vitalTypeSelect.addEventListener('change', function() {
+                    const units = {
+                        'bp_systolic': 'mmHg',
+                        'bp_diastolic': 'mmHg',
+                        'heart_rate': 'bpm',
+                        'blood_glucose': 'mg/dL',
+                        'hba1c': '%',
+                        'ldl_cholesterol': 'mg/dL',
+                        'hdl_cholesterol': 'mg/dL',
+                        'weight': 'kg',
+                        'pain_score': '0-10',
+                        'egfr': 'mL/min/1.73m²',
+                        'creatinine': 'mg/dL'
+                    };
+                    document.getElementById('vitalRecordUnit').value = units[this.value] || 'units';
+                });
+                vitalTypeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+
+        async function recordOutcome() {
+            const patientUid = document.getElementById('outcomePatientUid').value.trim();
+            const medication = document.getElementById('outcomeRecordMed').value.trim();
+            const outcomeType = document.getElementById('outcomeRecordType').value;
+            const description = document.getElementById('outcomeRecordDesc').value.trim();
+            const sideEffects = document.getElementById('outcomeRecordSideEffects').value.trim();
+            const statusEl = document.getElementById('outcomeRecordStatus');
+            
+            if (!patientUid || !medication || !description) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = '<span style="color: #dc2626;"><i class="fas fa-exclamation-circle"></i> Please fill in patient UID, medication, and description</span>';
+                return;
+            }
+            
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> Recording outcome...</span>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('medication', medication);
+                formData.append('outcome_type', outcomeType);
+                formData.append('description', description);
+                if (sideEffects) formData.append('side_effects', sideEffects);
+                
+                const response = await fetch(`${STAFF_API}/patient/${patientUid}/record-outcome`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color: #059669;"><i class="fas fa-check-circle"></i> Outcome recorded successfully!</span>';
+                    // Clear fields
+                    document.getElementById('outcomeRecordMed').value = '';
+                    document.getElementById('outcomeRecordDesc').value = '';
+                    document.getElementById('outcomeRecordSideEffects').value = '';
+                    
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+                } else {
+                    throw new Error(data.detail || 'Failed to record outcome');
+                }
+            } catch (error) {
+                statusEl.innerHTML = `<span style="color: #dc2626;"><i class="fas fa-times-circle"></i> ${error.message}</span>`;
+            }
+        }
+
+        async function recordVital() {
+            const patientUid = document.getElementById('outcomePatientUid').value.trim();
+            const vitalType = document.getElementById('vitalRecordType').value;
+            const value = document.getElementById('vitalRecordValue').value;
+            const unit = document.getElementById('vitalRecordUnit').value;
+            const notes = document.getElementById('vitalRecordNotes').value.trim();
+            const statusEl = document.getElementById('vitalRecordStatus');
+            
+            if (!patientUid || !value) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = '<span style="color: #dc2626;"><i class="fas fa-exclamation-circle"></i> Please enter patient UID and vital value</span>';
+                return;
+            }
+            
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> Recording vital...</span>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('vital_type', vitalType);
+                formData.append('value', value);
+                formData.append('unit', unit);
+                if (notes) formData.append('notes', notes);
+                
+                const response = await fetch(`${STAFF_API}/patient/${patientUid}/record-vital`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color: #059669;"><i class="fas fa-check-circle"></i> Vital recorded successfully!</span>';
+                    document.getElementById('vitalRecordValue').value = '';
+                    document.getElementById('vitalRecordNotes').value = '';
+                    
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+                } else {
+                    throw new Error(data.detail || 'Failed to record vital');
+                }
+            } catch (error) {
+                statusEl.innerHTML = `<span style="color: #dc2626;"><i class="fas fa-times-circle"></i> ${error.message}</span>`;
+            }
+        }
+
+        async function loadOutcomeReport() {
+            const uid = document.getElementById('outcomePatientUid').value.trim();
+            
+            if (!uid) {
+                alert('Please enter a patient UID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${STAFF_API}/patient/${uid}/comprehensive-outcome-report`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayOutcomeReport(data.report);
+                } else {
+                    alert(data.detail || 'Failed to load outcome report');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error loading outcome report: ' + error.message);
+            }
+        }
+
+        function displayOutcomeReport(report) {
+            document.getElementById('outcomeTimelineContainer').style.display = 'block';
+            
+            // Health trend badge
+            const trendEl = document.getElementById('outcomeHealthTrend');
+            const trend = report.overall_health_trend || 'stable';
+            const trendConfig = {
+                'improving': { class: 'badge-success', text: '📈 Improving' },
+                'stable': { class: 'badge-info', text: '➡️ Stable' },
+                'declining': { class: 'badge-danger', text: '📉 Declining' },
+                'insufficient_data': { class: 'badge-gray', text: '❓ Insufficient Data' }
+            };
+            const config = trendConfig[trend] || trendConfig.stable;
+            trendEl.className = 'badge ' + config.class;
+            trendEl.textContent = config.text;
+            
+            // Timeline
+            const timeline = report.outcome_timeline;
+            const treatments = timeline?.treatments || [];
+            
+            if (treatments.length > 0) {
+                let timelineHtml = '';
+                treatments.forEach((t, idx) => {
+                    const outcomeColors = {
+                        'improved': { bg: '#dcfce7', border: '#22c55e', icon: '✅' },
+                        'resolved': { bg: '#dbeafe', border: '#3b82f6', icon: '🎉' },
+                        'stable': { bg: '#f3f4f6', border: '#6b7280', icon: '➡️' },
+                        'worsened': { bg: '#fee2e2', border: '#ef4444', icon: '⚠️' },
+                        'discontinued': { bg: '#fef3c7', border: '#f59e0b', icon: '🛑' },
+                        'adverse_event': { bg: '#fce7f3', border: '#ec4899', icon: '❌' }
+                    };
+                    const colors = outcomeColors[t.outcome_type] || outcomeColors.stable;
+                    
+                    timelineHtml += `
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="width: 40px; height: 40px; background: ${colors.bg}; border: 2px solid ${colors.border}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                                ${colors.icon}
+                            </div>
+                            <div style="flex: 1; border-left: 2px solid var(--gray-200); padding-left: 1.5rem; ${idx === treatments.length - 1 ? 'border-left-color: transparent;' : ''}">
+                                <div style="font-weight: 600; color: var(--gray-800);">${t.medication}</div>
+                                <div style="font-size: 0.875rem; color: var(--gray-600); margin: 0.25rem 0;">${t.outcome_description}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-400);">
+                                    ${t.outcome_recorded_at ? new Date(t.outcome_recorded_at).toLocaleDateString() : 'Date unknown'}
+                                    ${t.effectiveness_score ? ` • Effectiveness: ${t.effectiveness_score.toFixed(0)}%` : ''}
+                                </div>
+                                ${t.side_effects?.length > 0 ? `
+                                    <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                                        ${t.side_effects.map(se => `<span class="badge badge-warning" style="font-size: 0.7rem;">⚠️ ${se}</span>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('outcomeTimelineList').innerHTML = timelineHtml;
+            } else {
+                document.getElementById('outcomeTimelineList').innerHTML = '<p style="color: var(--gray-500); text-align: center;">No treatment outcomes recorded yet.</p>';
+            }
+            
+            // Vital Trends
+            const vitalTrends = timeline?.vital_trends || {};
+            if (Object.keys(vitalTrends).length > 0) {
+                let trendsHtml = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">';
+                
+                const vitalNames = {
+                    'bp_systolic': 'BP Systolic',
+                    'bp_diastolic': 'BP Diastolic',
+                    'heart_rate': 'Heart Rate',
+                    'blood_glucose': 'Blood Glucose',
+                    'hba1c': 'HbA1c',
+                    'ldl_cholesterol': 'LDL Cholesterol',
+                    'weight': 'Weight',
+                    'pain_score': 'Pain Score'
+                };
+                
+                for (const [type, readings] of Object.entries(vitalTrends)) {
+                    if (readings.length > 0) {
+                        const latest = readings[readings.length - 1];
+                        const first = readings[0];
+                        const change = latest.value - first.value;
+                        const changePercent = ((change / first.value) * 100).toFixed(1);
+                        
+                        trendsHtml += `
+                            <div style="background: var(--gray-50); border-radius: 12px; padding: 1rem; text-align: center;">
+                                <div style="font-size: 0.75rem; color: var(--gray-500); text-transform: uppercase;">${vitalNames[type] || type}</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--gray-800);">${latest.value}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-400);">${latest.unit}</div>
+                                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: ${change < 0 ? '#059669' : change > 0 ? '#dc2626' : '#6b7280'};">
+                                    ${change > 0 ? '↑' : change < 0 ? '↓' : '→'} ${Math.abs(changePercent)}%
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                trendsHtml += '</div>';
+                document.getElementById('vitalTrendsContainer').innerHTML = trendsHtml;
+            } else {
+                document.getElementById('vitalTrendsContainer').innerHTML = '<p style="color: var(--gray-500); text-align: center;">No vital readings recorded yet.</p>';
+            }
+            
+            // Insights
+            const insights = report.insights || [];
+            if (insights.length > 0) {
+                let insightsHtml = '';
+                insights.forEach(insight => {
+                    const insightColors = {
+                        'positive': { bg: '#dcfce7', border: '#22c55e', icon: '✅' },
+                        'warning': { bg: '#fee2e2', border: '#ef4444', icon: '⚠️' },
+                        'info': { bg: '#dbeafe', border: '#3b82f6', icon: 'ℹ️' }
+                    };
+                    const colors = insightColors[insight.type] || insightColors.info;
+                    
+                    insightsHtml += `
+                        <div style="border-left: 4px solid ${colors.border}; background: ${colors.bg}; border-radius: 0 8px 8px 0; padding: 1rem; margin-bottom: 0.75rem;">
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">${colors.icon} ${insight.title}</div>
+                            <div style="font-size: 0.875rem; color: var(--gray-700);">${insight.message}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById('treatmentInsightsList').innerHTML = insightsHtml;
+            } else {
+                document.getElementById('treatmentInsightsList').innerHTML = '<p style="color: var(--gray-500); text-align: center;">No insights available yet. Record more outcomes to generate insights.</p>';
+            }
+        }
+
+        async function predictTreatmentSuccess() {
+            const patientUid = document.getElementById('outcomePatientUid').value.trim();
+            const medication = document.getElementById('predictionMed').value.trim();
+            const condition = document.getElementById('predictionCondition').value.trim();
+            const resultsEl = document.getElementById('predictionResults');
+            
+            if (!patientUid || !medication) {
+                alert('Please enter patient UID and medication');
+                return;
+            }
+            
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-500);"><i class="fas fa-spinner fa-spin fa-2x"></i><div style="margin-top: 1rem;">Running ML prediction model...</div></div>';
+            
+            try {
+                const params = new URLSearchParams({ medication });
+                if (condition) params.append('condition', condition);
+                
+                const response = await fetch(`${STAFF_API}/patient/${patientUid}/treatment-prediction?${params}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPrediction(data.prediction);
+                } else {
+                    throw new Error(data.detail || 'Failed to get prediction');
+                }
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="background: #fee2e2; padding: 1rem; border-radius: 8px; color: #dc2626;"><i class="fas fa-times-circle"></i> ${error.message}</div>`;
+            }
+        }
+
+        function displayPrediction(prediction) {
+            const resultsEl = document.getElementById('predictionResults');
+            const prob = prediction.predicted_success_probability;
+            const ci = prediction.confidence_interval;
+            
+            const probColor = prob >= 70 ? '#22c55e' : prob >= 50 ? '#f59e0b' : '#ef4444';
+            
+            resultsEl.innerHTML = `
+                <div style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-radius: 12px; padding: 1.5rem; margin-top: 1rem;">
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <div style="font-size: 3rem; font-weight: 800; color: ${probColor};">${prob.toFixed(0)}%</div>
+                        <div style="font-size: 0.875rem; color: var(--gray-500);">Predicted Success Probability</div>
+                        <div style="font-size: 0.75rem; color: var(--gray-400); margin-top: 0.25rem;">
+                            95% CI: ${ci[0].toFixed(0)}% - ${ci[1].toFixed(0)}%
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #059669; margin-bottom: 0.5rem;">
+                                <i class="fas fa-thumbs-up"></i> Factors Supporting Success
+                            </div>
+                            ${prediction.factors_supporting?.length > 0 ? prediction.factors_supporting.map(f => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.8rem; border-bottom: 1px solid rgba(5, 150, 105, 0.1);">
+                                    <span>${f.factor}</span>
+                                    <span style="color: #059669;">${f.impact}</span>
+                                </div>
+                            `).join('') : '<div style="color: var(--gray-400); font-size: 0.8rem;">No specific factors identified</div>'}
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #dc2626; margin-bottom: 0.5rem;">
+                                <i class="fas fa-thumbs-down"></i> Factors Against Success
+                            </div>
+                            ${prediction.factors_against?.length > 0 ? prediction.factors_against.map(f => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.8rem; border-bottom: 1px solid rgba(220, 38, 38, 0.1);">
+                                    <span>${f.factor}</span>
+                                    <span style="color: #dc2626;">${f.impact}</span>
+                                </div>
+                            `).join('') : '<div style="color: var(--gray-400); font-size: 0.8rem;">No specific factors identified</div>'}
+                        </div>
+                    </div>
+                    
+                    ${prediction.similar_patient_outcomes?.total_similar_patients ? `
+                        <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--gray-600); margin-bottom: 0.5rem;">
+                                <i class="fas fa-users"></i> Similar Patient Outcomes (n=${prediction.similar_patient_outcomes.total_similar_patients.toLocaleString()})
+                            </div>
+                            <div style="display: flex; gap: 1rem; font-size: 0.8rem;">
+                                <span><strong>Improved:</strong> ${(prediction.similar_patient_outcomes.improved_rate * 100).toFixed(0)}%</span>
+                                <span><strong>Avg Time:</strong> ${prediction.similar_patient_outcomes.avg_time_to_improvement} days</span>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="background: white; border-radius: 8px; padding: 1rem;">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: #8b5cf6; margin-bottom: 0.5rem;">
+                            <i class="fas fa-robot"></i> AI Recommendation
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--gray-700);">${prediction.recommendation}</div>
+                    </div>
+                </div>
+            `;
         }
     </script>
 </body>
