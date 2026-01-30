@@ -1,10 +1,19 @@
-# Medical AI Gateway 2.0
+# Medical AI Gateway 2.0 - Hospital Edition
 
-A comprehensive medical document processing system that turns messy documents into structured, explainable, time-aware clinical insight.
+🏥 **Production-Ready Hospital Prescription Management System**
 
-## 🌟 Features
+A comprehensive medical document processing system that turns messy handwritten prescriptions into structured, verified, time-aware clinical data with full HIPAA compliance.
 
-### 1. Document Intake & OCR
+## 🎯 Hospital-Ready Features
+
+### Security & Compliance
+- ✅ **JWT Authentication** - Secure token-based login
+- ✅ **Role-Based Access Control** - Admin, Doctor, Pharmacist, Nurse, Receptionist
+- ✅ **HIPAA-Compliant Audit Logging** - Complete action tracking
+- ✅ **Password Hashing** - bcrypt with salt
+- ✅ **Session Management** - Token expiration & refresh
+
+### Core Features
 - Multi-format support (PDF, PNG, JPG, TIFF, BMP, WEBP)
 - Google Cloud Vision AI integration
 - Bounding box extraction with confidence scores

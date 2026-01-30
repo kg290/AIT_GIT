@@ -1,4 +1,5 @@
 # Medical AI Gateway 2.0 - Requirements
+# Hospital-Ready Production System
 
 # Core Framework
 fastapi>=0.100.0
@@ -8,6 +9,12 @@ pydantic-settings>=2.0.0
 
 # Database
 sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0  # PostgreSQL driver for production
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0  # JWT tokens
+passlib[bcrypt]>=1.7.4  # Password hashing
+python-multipart>=0.0.6  # Form data handling
 
 # Google Cloud Vision for OCR
 google-cloud-vision>=3.4.0
@@ -33,9 +40,6 @@ neo4j>=5.0.0
 
 # Optional: OpenAI for LLM features
 openai>=1.0.0
-
-# File upload handling
-python-multipart>=0.0.6
 
 # Testing
 pytest>=7.0.0

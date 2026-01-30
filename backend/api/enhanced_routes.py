@@ -17,8 +17,40 @@ from backend.services.uncertainty_service import UncertaintyService
 from backend.services.human_review_service import HumanReviewService
 from backend.services.conversational_query_service import ConversationalQueryService
 from backend.services.compliance_service import ComplianceService
+from backend.services.drug_normalization_service import DrugNormalizationService
+from backend.services.drug_interaction_service import DrugInteractionService
+from backend.services.temporal_reasoning_service import TemporalReasoningService
 
 router = APIRouter(prefix="/api/v2", tags=["Enhanced API"])
+
+# Initialize singleton service instances
+_drug_normalizer = None
+_drug_interaction_service = None
+_temporal_service = None
+
+
+def get_drug_normalizer() -> DrugNormalizationService:
+    """Get or create drug normalization service singleton"""
+    global _drug_normalizer
+    if _drug_normalizer is None:
+        _drug_normalizer = DrugNormalizationService()
+    return _drug_normalizer
+
+
+def get_drug_interaction_service() -> DrugInteractionService:
+    """Get or create drug interaction service singleton"""
+    global _drug_interaction_service
+    if _drug_interaction_service is None:
+        _drug_interaction_service = DrugInteractionService()
+    return _drug_interaction_service
+
+
+def get_temporal_service() -> TemporalReasoningService:
+    """Get or create temporal reasoning service singleton"""
+    global _temporal_service
+    if _temporal_service is None:
+        _temporal_service = TemporalReasoningService()
+    return _temporal_service
 
 
 # ==================== Request/Response Models ====================
@@ -38,6 +70,67 @@ class ConditionInput(BaseModel):
     severity: str = "moderate"
     diagnosed_by: str = None
     diagnosed_date: datetime = None
+
+
+# Drug Normalization Models
+class DrugNormalizeInput(BaseModel):
+    drug_name: str
+
+
+class DrugNormalizeBatchInput(BaseModel):
+    drug_names: List[str]
+
+
+class DuplicateCheckInput(BaseModel):
+    medications: List[str]
+
+
+class DrugCompareInput(BaseModel):
+    drug1: str
+    drug2: str
+
+
+# Drug Safety Models
+class SafetyAnalysisInput(BaseModel):
+    medications: List[str]
+    patient_allergies: List[str] = []
+    patient_conditions: List[str] = []
+    suppress_low_value: bool = True
+
+
+class InteractionCheckInput(BaseModel):
+    medications: List[str]
+
+
+class AllergyCheckInput(BaseModel):
+    medications: List[str]
+    allergies: List[str]
+
+
+class ContraindicationCheckInput(BaseModel):
+    medications: List[str]
+    conditions: List[str]
+
+
+# Temporal Reasoning Models
+class PrescriptionInput(BaseModel):
+    date: str
+    prescriber: str = None
+    diagnosis: str = None
+    document_id: int = None
+    medications: List[Dict[str, Any]]
+
+
+class TimelineBuildInput(BaseModel):
+    prescriptions: List[PrescriptionInput]
+    visits: List[Dict[str, Any]] = []
+    diagnoses: List[Dict[str, Any]] = []
+    vitals: List[Dict[str, Any]] = []
+
+
+class PrescriptionCompareInput(BaseModel):
+    prescription1: Dict[str, Any]
+    prescription2: Dict[str, Any]
 
 
 class CorrectionInput(BaseModel):
@@ -71,6 +164,591 @@ class AuditQueryParams(BaseModel):
     start_date: datetime = None
     end_date: datetime = None
     limit: int = 100
+
+
+# ==================== Drug Normalization Endpoints ====================
+
+@router.post("/drugs/normalize", tags=["Drug Normalization"])
+async def normalize_drug(input_data: DrugNormalizeInput):
+    """
+    Normalize a drug name to generic form
+    
+    - Converts brand names to generic names
+    - Identifies drug class
+    - Returns confidence score
+    """
+    service = get_drug_normalizer()
+    result = service.normalize(input_data.drug_name)
+    return {
+        "original_name": result.original_name,
+        "generic_name": result.generic_name,
+        "brand_names": result.brand_names,
+        "drug_class": result.drug_class,
+        "confidence": result.confidence,
+        "is_brand_name": result.is_brand,
+        "common_dosages": result.common_dosages
+    }
+
+
+@router.post("/drugs/normalize/batch", tags=["Drug Normalization"])
+async def normalize_drugs_batch(input_data: DrugNormalizeBatchInput):
+    """
+    Normalize multiple drug names in a single request
+    
+    - Batch processing for efficiency
+    - Returns normalized info for each drug
+    """
+    service = get_drug_normalizer()
+    results = []
+    for drug_name in input_data.drug_names:
+        result = service.normalize(drug_name)
+        results.append({
+            "original_name": result.original_name,
+            "generic_name": result.generic_name,
+            "brand_names": result.brand_names,
+            "drug_class": result.drug_class,
+            "confidence": result.confidence,
+            "is_brand_name": result.is_brand,
+            "common_dosages": result.common_dosages
+        })
+    return {"drugs": results, "count": len(results)}
+
+
+@router.post("/drugs/duplicates", tags=["Drug Normalization"])
+async def detect_duplicate_medications(input_data: DuplicateCheckInput):
+    """
+    Detect duplicate medications (same drug under different names)
+    
+    - Finds generic equivalents
+    - Groups by active ingredient
+    - Warns about therapeutic duplication
+    """
+    service = get_drug_normalizer()
+    duplicates = service.detect_duplicates(input_data.medications)
+    return {
+        "duplicates": duplicates,
+        "has_duplicates": len(duplicates) > 0,
+        "duplicate_count": len(duplicates)
+    }
+
+
+@router.post("/drugs/compare", tags=["Drug Normalization"])
+async def compare_drugs(input_data: DrugCompareInput):
+    """
+    Check if two drug names refer to the same medication
+    
+    - Compares generic equivalents
+    - Returns match confidence
+    """
+    service = get_drug_normalizer()
+    is_same, confidence = service.are_same_drug(input_data.drug1, input_data.drug2)
+    
+    norm1 = service.normalize(input_data.drug1)
+    norm2 = service.normalize(input_data.drug2)
+    
+    return {
+        "drug1": {
+            "original": input_data.drug1,
+            "generic": norm1.generic_name,
+            "class": norm1.drug_class
+        },
+        "drug2": {
+            "original": input_data.drug2,
+            "generic": norm2.generic_name,
+            "class": norm2.drug_class
+        },
+        "is_same_drug": is_same,
+        "confidence": confidence,
+        "same_class": norm1.drug_class == norm2.drug_class
+    }
+
+
+@router.get("/drugs/alternatives/{drug_name}", tags=["Drug Normalization"])
+async def get_therapeutic_alternatives(drug_name: str):
+    """
+    Get therapeutic alternatives for a drug
+    
+    - Returns drugs in same therapeutic class
+    - Useful for substitution recommendations
+    """
+    service = get_drug_normalizer()
+    alternatives = service.get_therapeutic_alternatives(drug_name)
+    normalized = service.normalize(drug_name)
+    
+    return {
+        "drug": drug_name,
+        "generic_name": normalized.generic_name,
+        "drug_class": normalized.drug_class,
+        "alternatives": alternatives,
+        "alternatives_count": len(alternatives)
+    }
+
+
+@router.get("/drugs/class/{drug_name}", tags=["Drug Normalization"])
+async def get_drug_class(drug_name: str):
+    """
+    Get the drug class for a medication
+    
+    - Returns therapeutic classification
+    - Useful for categorization
+    """
+    service = get_drug_normalizer()
+    drug_class = service.get_drug_class(drug_name)
+    normalized = service.normalize(drug_name)
+    
+    return {
+        "drug": drug_name,
+        "generic_name": normalized.generic_name,
+        "drug_class": drug_class,
+        "therapeutic_class": normalized.drug_class,
+        "confidence": normalized.confidence
+    }
+
+
+@router.get("/drugs/standardize/{drug_name}", tags=["Drug Normalization"])
+async def standardize_drug_name(drug_name: str):
+    """
+    Get standardized (generic) name for a drug
+    
+    - Returns preferred generic name
+    - Useful for data normalization
+    """
+    service = get_drug_normalizer()
+    standardized = service.standardize_name(drug_name)
+    normalized = service.normalize(drug_name)
+    
+    return {
+        "original_name": drug_name,
+        "standardized_name": standardized,
+        "is_brand_name": normalized.is_brand,
+        "confidence": normalized.confidence
+    }
+
+
+# ==================== Drug Safety Analysis Endpoints ====================
+
+@router.post("/drugs/safety/analyze", tags=["Drug Safety"])
+async def analyze_drug_safety(input_data: SafetyAnalysisInput):
+    """
+    Complete drug safety analysis
+    
+    - Checks drug-drug interactions
+    - Checks patient allergies
+    - Checks contraindications against conditions
+    - Detects duplicate therapies
+    - Returns severity classification
+    """
+    service = get_drug_interaction_service()
+    result = service.analyze_safety(
+        medications=input_data.medications,
+        patient_allergies=input_data.patient_allergies,
+        patient_conditions=input_data.patient_conditions,
+        suppress_low_value=input_data.suppress_low_value
+    )
+    return service.to_dict(result)
+
+
+@router.post("/drugs/interactions/check", tags=["Drug Safety"])
+async def check_drug_interactions(input_data: InteractionCheckInput):
+    """
+    Check for drug-drug interactions only
+    
+    - Specific drug pair interactions (30+ pairs)
+    - Class-level interactions (NSAIDs + Anticoagulants, etc.)
+    - Severity classification (Minor/Moderate/Major/Contraindicated)
+    """
+    service = get_drug_interaction_service()
+    result = service.analyze_safety(
+        medications=input_data.medications,
+        patient_allergies=[],
+        patient_conditions=[],
+        suppress_low_value=False
+    )
+    
+    interactions = [
+        {
+            "drug1": i.drug1,
+            "drug2": i.drug2,
+            "severity": i.severity.value,
+            "description": i.description,
+            "mechanism": i.mechanism,
+            "clinical_effects": i.clinical_effects,
+            "management": i.management,
+            "evidence_level": i.evidence_level
+        }
+        for i in result.interactions
+    ]
+    
+    return {
+        "interactions": interactions,
+        "interaction_count": len(interactions),
+        "has_major_interactions": any(i["severity"] in ["major", "contraindicated"] for i in interactions),
+        "has_contraindicated": any(i["severity"] == "contraindicated" for i in interactions)
+    }
+
+
+@router.post("/drugs/allergies/check", tags=["Drug Safety"])
+async def check_allergy_risks(input_data: AllergyCheckInput):
+    """
+    Check medication-allergy conflicts
+    
+    - Direct allergen matching
+    - Cross-reactivity detection (e.g., penicillin cross-sensitivity)
+    - Suggests alternatives
+    """
+    service = get_drug_interaction_service()
+    result = service.analyze_safety(
+        medications=input_data.medications,
+        patient_allergies=input_data.allergies,
+        patient_conditions=[],
+        suppress_low_value=False
+    )
+    
+    allergy_alerts = [
+        {
+            "drug": a.drug,
+            "allergen": a.allergen,
+            "risk_type": a.risk_type,
+            "severity": a.severity.value,
+            "description": a.description,
+            "alternatives": a.alternatives
+        }
+        for a in result.allergy_alerts
+    ]
+    
+    return {
+        "allergy_alerts": allergy_alerts,
+        "alert_count": len(allergy_alerts),
+        "has_contraindicated": any(a["severity"] == "contraindicated" for a in allergy_alerts)
+    }
+
+
+@router.post("/drugs/contraindications/check", tags=["Drug Safety"])
+async def check_contraindications(input_data: ContraindicationCheckInput):
+    """
+    Check drug-condition contraindications
+    
+    - Checks against patient conditions
+    - Returns contraindicated and caution-level findings
+    """
+    service = get_drug_interaction_service()
+    result = service.analyze_safety(
+        medications=input_data.medications,
+        patient_allergies=[],
+        patient_conditions=input_data.conditions,
+        suppress_low_value=False
+    )
+    
+    return {
+        "contraindications": result.contraindications,
+        "contraindication_count": len(result.contraindications),
+        "has_absolute_contraindications": any(c["level"] == "contraindicated" for c in result.contraindications)
+    }
+
+
+@router.post("/drugs/duplicates/therapy", tags=["Drug Safety"])
+async def check_duplicate_therapy(input_data: InteractionCheckInput):
+    """
+    Check for duplicate therapy (same class medications)
+    
+    - Detects multiple drugs in same therapeutic class
+    - Identifies same generic drug under different names
+    """
+    service = get_drug_interaction_service()
+    result = service.analyze_safety(
+        medications=input_data.medications,
+        patient_allergies=[],
+        patient_conditions=[],
+        suppress_low_value=False
+    )
+    
+    duplicate_therapies = [
+        {
+            "drugs": d.drugs,
+            "drug_class": d.drug_class,
+            "description": d.description,
+            "recommendation": d.recommendation
+        }
+        for d in result.duplicate_therapies
+    ]
+    
+    return {
+        "duplicate_therapies": duplicate_therapies,
+        "duplicate_count": len(duplicate_therapies),
+        "has_duplicates": len(duplicate_therapies) > 0
+    }
+
+
+@router.get("/drugs/safety/risk-levels", tags=["Drug Safety"])
+async def get_risk_level_info():
+    """
+    Get information about risk levels and severity classifications
+    """
+    return {
+        "severity_levels": [
+            {
+                "level": "minor",
+                "description": "Minimal clinical significance, monitor if needed",
+                "action": "Be aware, usually no action required"
+            },
+            {
+                "level": "moderate", 
+                "description": "May require dosage adjustment or monitoring",
+                "action": "Monitor patient, consider alternatives"
+            },
+            {
+                "level": "major",
+                "description": "Significant clinical consequences possible",
+                "action": "Avoid combination or use extreme caution with close monitoring"
+            },
+            {
+                "level": "contraindicated",
+                "description": "Life-threatening or absolutely contraindicated",
+                "action": "Do not use together, find alternatives"
+            }
+        ],
+        "overall_risk_levels": [
+            {"level": "MINIMAL", "description": "No significant concerns identified"},
+            {"level": "LOW", "description": "Minor interactions or duplicates detected"},
+            {"level": "MODERATE", "description": "One major interaction identified"},
+            {"level": "HIGH", "description": "Multiple major interactions identified"},
+            {"level": "CRITICAL", "description": "Contraindicated combination detected"}
+        ]
+    }
+
+
+# ==================== Temporal Reasoning Endpoints ====================
+
+@router.post("/temporal/build-timeline", tags=["Temporal Reasoning"])
+async def build_medication_timeline(input_data: TimelineBuildInput):
+    """
+    Build comprehensive medical timeline from prescriptions
+    
+    - Creates chronological event timeline
+    - Calculates medication periods
+    - Detects medication changes
+    - Identifies overlapping medications
+    """
+    service = get_temporal_service()
+    
+    # Convert Pydantic models to dicts
+    prescriptions = [p.model_dump() for p in input_data.prescriptions]
+    
+    result = service.build_timeline(
+        prescriptions=prescriptions,
+        visits=input_data.visits,
+        diagnoses=input_data.diagnoses,
+        vitals=input_data.vitals
+    )
+    
+    return service.to_dict(result)
+
+
+@router.post("/temporal/compare-prescriptions", tags=["Temporal Reasoning"])
+async def compare_prescriptions(input_data: PrescriptionCompareInput):
+    """
+    Compare two prescriptions to identify changes
+    
+    - Finds new medications
+    - Finds discontinued medications
+    - Finds dosage/frequency changes
+    """
+    service = get_temporal_service()
+    comparison = service.compare_prescriptions(
+        prescription1=input_data.prescription1,
+        prescription2=input_data.prescription2
+    )
+    return comparison
+
+
+@router.post("/temporal/medication-changes", tags=["Temporal Reasoning"])
+async def get_medication_changes(input_data: TimelineBuildInput):
+    """
+    Get detected medication changes over time
+    
+    - Started medications
+    - Stopped medications
+    - Dosage changes
+    - Frequency changes
+    """
+    service = get_temporal_service()
+    prescriptions = [p.model_dump() for p in input_data.prescriptions]
+    
+    result = service.build_timeline(prescriptions=prescriptions)
+    
+    changes = [
+        {
+            "medication_name": c.medication_name,
+            "change_type": c.change_type,
+            "old_value": c.old_value,
+            "new_value": c.new_value,
+            "change_date": str(c.change_date),
+            "confidence": c.confidence
+        }
+        for c in result.medication_changes
+    ]
+    
+    # Group by change type
+    grouped = {
+        "started": [c for c in changes if c["change_type"] == "started"],
+        "stopped": [c for c in changes if c["change_type"] == "stopped"],
+        "dose_changed": [c for c in changes if c["change_type"] == "dose_changed"],
+        "frequency_changed": [c for c in changes if c["change_type"] == "frequency_changed"]
+    }
+    
+    return {
+        "all_changes": changes,
+        "grouped_changes": grouped,
+        "total_changes": len(changes)
+    }
+
+
+@router.post("/temporal/overlaps", tags=["Temporal Reasoning"])
+async def get_medication_overlaps(input_data: TimelineBuildInput):
+    """
+    Find overlapping medication periods
+    
+    - Identifies concurrent medications
+    - Calculates overlap duration
+    - Flags significant overlaps
+    """
+    service = get_temporal_service()
+    prescriptions = [p.model_dump() for p in input_data.prescriptions]
+    
+    result = service.build_timeline(prescriptions=prescriptions)
+    
+    overlaps = [
+        {
+            "medication1": o.medication1,
+            "medication2": o.medication2,
+            "overlap_start": str(o.overlap_start),
+            "overlap_end": str(o.overlap_end),
+            "duration_days": o.duration_days,
+            "is_significant": o.is_significant,
+            "notes": o.notes
+        }
+        for o in result.overlapping_medications
+    ]
+    
+    return {
+        "overlaps": overlaps,
+        "overlap_count": len(overlaps),
+        "significant_overlaps": [o for o in overlaps if o["is_significant"]]
+    }
+
+
+@router.post("/temporal/current-medications", tags=["Temporal Reasoning"])
+async def get_current_medications(input_data: TimelineBuildInput):
+    """
+    Get currently active medications vs historical
+    
+    - Lists active medications
+    - Lists historical (discontinued) medications
+    """
+    service = get_temporal_service()
+    prescriptions = [p.model_dump() for p in input_data.prescriptions]
+    
+    result = service.build_timeline(prescriptions=prescriptions)
+    
+    return {
+        "current_medications": result.current_medications,
+        "historical_medications": result.historical_medications,
+        "current_count": len(result.current_medications),
+        "historical_count": len(result.historical_medications)
+    }
+
+
+@router.post("/temporal/medication-periods", tags=["Temporal Reasoning"])
+async def get_medication_periods(input_data: TimelineBuildInput):
+    """
+    Get medication periods with start/end dates
+    
+    - Calculates medication duration
+    - Identifies ongoing medications
+    """
+    service = get_temporal_service()
+    prescriptions = [p.model_dump() for p in input_data.prescriptions]
+    
+    result = service.build_timeline(prescriptions=prescriptions)
+    
+    periods = [
+        {
+            "medication_name": p.medication_name,
+            "generic_name": p.generic_name,
+            "start_date": str(p.start_date),
+            "end_date": str(p.end_date) if p.end_date else None,
+            "dosage": p.dosage,
+            "frequency": p.frequency,
+            "is_ongoing": p.is_ongoing,
+            "confidence": p.confidence
+        }
+        for p in result.medication_periods
+    ]
+    
+    return {
+        "medication_periods": periods,
+        "total_periods": len(periods),
+        "ongoing_count": len([p for p in periods if p["is_ongoing"]])
+    }
+
+
+# ==================== Combined Analysis Endpoints ====================
+
+@router.post("/drugs/comprehensive-analysis", tags=["Combined Analysis"])
+async def comprehensive_drug_analysis(
+    medications: List[str],
+    patient_allergies: List[str] = [],
+    patient_conditions: List[str] = []
+):
+    """
+    Comprehensive drug analysis combining normalization, safety, and duplicates
+    
+    - Normalizes all drug names
+    - Checks all interactions
+    - Checks allergies and contraindications
+    - Detects duplicates
+    - Returns complete analysis
+    """
+    normalizer = get_drug_normalizer()
+    interaction_service = get_drug_interaction_service()
+    
+    # Normalize all medications
+    normalized = []
+    for med in medications:
+        norm = normalizer.normalize(med)
+        normalized.append({
+            "original": med,
+            "generic": norm.generic_name,
+            "drug_class": norm.drug_class,
+            "confidence": norm.confidence,
+            "is_brand": norm.is_brand
+        })
+    
+    # Check duplicates
+    duplicates = normalizer.detect_duplicates(medications)
+    
+    # Full safety analysis
+    safety = interaction_service.analyze_safety(
+        medications=medications,
+        patient_allergies=patient_allergies,
+        patient_conditions=patient_conditions
+    )
+    safety_dict = interaction_service.to_dict(safety)
+    
+    return {
+        "normalized_medications": normalized,
+        "duplicates": duplicates,
+        "safety_analysis": safety_dict,
+        "summary": {
+            "total_medications": len(medications),
+            "unique_generics": len(set(n["generic"] for n in normalized)),
+            "interaction_count": len(safety.interactions),
+            "allergy_alerts": len(safety.allergy_alerts),
+            "contraindications": len(safety.contraindications),
+            "duplicate_therapies": len(safety.duplicate_therapies),
+            "overall_risk": safety.overall_risk_level
+        }
+    }
 
 
 # ==================== Patient History Endpoints ====================

@@ -1,11 +1,18 @@
 """
-Medical AI Gateway 2.0 - Main Application Entry Point
+Medical AI Gateway 2.0 - Production Hospital System
 
 A medical intelligence layer that turns messy documents into
 structured, explainable, time-aware clinical insight.
+
+Production-ready for hospital deployment with:
+- JWT Authentication
+- Role-based access control
+- HIPAA-compliant audit logging
+- PostgreSQL/SQLite database support
 """
 import logging
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +23,11 @@ from backend.config import settings
 from backend.database import init_db
 from backend.api import documents, patients, query, analytics
 from backend.api.enhanced_routes import router as enhanced_router
+from backend.api.patient_prescriptions import router as patient_prescriptions_router
+
+# Production imports
+from backend.api.production_routes import router as hospital_router
+from backend.database.connection import db_manager
 
 # Configure logging
 logging.basicConfig(
@@ -63,6 +75,8 @@ app.include_router(patients.router, prefix="/api")
 app.include_router(query.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(enhanced_router)  # Enhanced API v2 routes
+app.include_router(patient_prescriptions_router)  # Automated patient prescription routes
+app.include_router(hospital_router)  # Production hospital routes with authentication
 
 # Ensure directories exist
 settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -78,11 +92,20 @@ if static_dir.exists():
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and services on startup"""
-    logger.info("Starting Medical AI Gateway 2.0...")
+    logger.info("Starting Medical AI Gateway 2.0 (Production Mode)...")
+    
+    # Initialize legacy database
     init_db()
-    logger.info("Database initialized")
+    logger.info("Legacy database initialized")
+    
+    # Initialize production database with authentication
+    db_manager.init_database()
+    logger.info("Production database initialized (PostgreSQL/SQLite)")
+    
     logger.info(f"Upload directory: {settings.UPLOAD_DIR}")
     logger.info(f"API documentation available at /api/docs")
+    logger.info(f"Hospital Portal: /hospital/login")
+    logger.info(f"Default admin credentials - Username: admin, Password: admin123")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -167,6 +190,24 @@ async def dashboard():
 async def simple_scanner():
     """Serve the simple scanner page"""
     return FileResponse(Path(__file__).parent / "frontend" / "index.html")
+
+
+@app.get("/hospital/login", response_class=HTMLResponse)
+async def hospital_login():
+    """Serve the hospital login page"""
+    login_path = Path(__file__).parent / "frontend" / "hospital_login.html"
+    if login_path.exists():
+        return FileResponse(login_path)
+    return HTMLResponse(content="<h1>Login page not found</h1>")
+
+
+@app.get("/hospital/dashboard", response_class=HTMLResponse)
+async def hospital_dashboard():
+    """Serve the hospital dashboard"""
+    dashboard_path = Path(__file__).parent / "frontend" / "hospital_dashboard.html"
+    if dashboard_path.exists():
+        return FileResponse(dashboard_path)
+    return HTMLResponse(content="<h1>Dashboard not found</h1>")
 
 
 if __name__ == "__main__":

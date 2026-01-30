@@ -1033,15 +1033,31 @@
             </div>
 
             <div class="nav-section">
-                <div class="nav-section-title">Safety</div>
+                <div class="nav-section-title">Drug Tools</div>
+                <a class="nav-item" data-page="drug-normalize">
+                    <i class="fas fa-pills"></i>
+                    <span>Drug Normalization</span>
+                </a>
                 <a class="nav-item" data-page="interactions">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <span>Drug Interactions</span>
+                    <span>Safety Analysis</span>
                     <span class="nav-badge" id="alertBadge">0</span>
                 </a>
                 <a class="nav-item" data-page="allergies">
                     <i class="fas fa-allergies"></i>
-                    <span>Allergy Database</span>
+                    <span>Allergy Checker</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Temporal</div>
+                <a class="nav-item" data-page="timeline">
+                    <i class="fas fa-stream"></i>
+                    <span>Medication Timeline</span>
+                </a>
+                <a class="nav-item" data-page="med-changes">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Medication Changes</span>
                 </a>
             </div>
 
@@ -1051,22 +1067,14 @@
                     <i class="fas fa-chart-line"></i>
                     <span>Reports</span>
                 </a>
-                <a class="nav-item" data-page="settings">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                <a class="nav-item" data-page="knowledge-graph">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Knowledge Graph</span>
                 </a>
             </div>
 
             <div class="nav-section">
                 <div class="nav-section-title">Advanced</div>
-                <a class="nav-item" data-page="timeline">
-                    <i class="fas fa-stream"></i>
-                    <span>Patient Timeline</span>
-                </a>
-                <a class="nav-item" data-page="knowledge-graph">
-                    <i class="fas fa-project-diagram"></i>
-                    <span>Knowledge Graph</span>
-                </a>
                 <a class="nav-item" data-page="ask-ai">
                     <i class="fas fa-robot"></i>
                     <span>Ask AI</span>
@@ -1079,6 +1087,10 @@
                 <a class="nav-item" data-page="audit">
                     <i class="fas fa-shield-alt"></i>
                     <span>Audit & Compliance</span>
+                </a>
+                <a class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
                 </a>
             </div>
         </nav>
@@ -1456,33 +1468,281 @@
 
             <!-- Patients Page -->
             <section class="page-section" id="page-patients">
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title"><i class="fas fa-users" style="margin-right: 0.5rem;"></i>Patient Management</span>
-                        <button class="btn btn-primary btn-sm" onclick="openAddPatient()">
-                            <i class="fas fa-plus"></i> Add Patient
+                <!-- Patient Selection / Creation -->
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card" onclick="refreshPatientList()" style="cursor: pointer;">
+                        <div class="stat-icon blue" style="margin-bottom: 0.5rem;"><i class="fas fa-users"></i></div>
+                        <div class="stat-value" id="totalPatientsCount">0</div>
+                        <div class="stat-label">Total Patients</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green" style="margin-bottom: 0.5rem;"><i class="fas fa-file-medical"></i></div>
+                        <div class="stat-value" id="totalPrescriptionsCount">0</div>
+                        <div class="stat-label">Total Prescriptions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow" style="margin-bottom: 0.5rem;"><i class="fas fa-pills"></i></div>
+                        <div class="stat-value" id="activeMedicationsCount">0</div>
+                        <div class="stat-label">Active Medications</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red" style="margin-bottom: 0.5rem;"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="stat-value" id="activeAlertsCount">0</div>
+                        <div class="stat-label">Active Alerts</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
+                    <!-- Left Panel: Patient List & Selection -->
+                    <div>
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fas fa-user-plus"></i> Select / Create Patient</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">Patient ID</label>
+                                    <input type="text" class="form-input" id="patientIdInput" placeholder="Enter patient ID (e.g., P001)">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Patient Name</label>
+                                    <input type="text" class="form-input" id="patientNameInput" placeholder="Patient full name">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Known Allergies (comma-separated)</label>
+                                    <input type="text" class="form-input" id="patientAllergiesInput" placeholder="e.g., Penicillin, Sulfa">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Chronic Conditions (comma-separated)</label>
+                                    <input type="text" class="form-input" id="patientConditionsInput" placeholder="e.g., diabetes, hypertension">
+                                </div>
+                                <button class="btn btn-primary" style="width: 100%;" onclick="selectPatient()">
+                                    <i class="fas fa-check"></i> Select / Create Patient
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Existing Patients List -->
+                        <div class="card" style="margin-top: 1rem;">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fas fa-list"></i> Existing Patients</span>
+                                <button class="btn btn-sm" onclick="refreshPatientList()"><i class="fas fa-sync"></i></button>
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto; padding: 0;">
+                                <div id="existingPatientsList">
+                                    <div class="empty-state" style="padding: 2rem;">
+                                        <i class="fas fa-user-slash" style="font-size: 1.5rem; color: var(--gray-400);"></i>
+                                        <p style="margin-top: 0.5rem;">No patients yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Upload Prescriptions -->
+                    <div>
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fas fa-cloud-upload-alt"></i> Upload Prescriptions</span>
+                                <span class="badge" id="selectedPatientBadge" style="display: none;">No patient selected</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="noPatientSelectedMsg" class="alert-box info">
+                                    <span class="alert-icon">ℹ️</span>
+                                    <div class="alert-content">
+                                        <h5>Select a Patient First</h5>
+                                        <p>Enter a patient ID on the left to start uploading prescriptions.</p>
+                                    </div>
+                                </div>
+
+                                <div id="prescriptionUploadArea" style="display: none;">
+                                    <div class="upload-zone" id="multiUploadZone" style="border: 2px dashed var(--primary); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s;">
+                                        <i class="fas fa-images" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                        <h4>Drop Prescription Images Here</h4>
+                                        <p style="color: var(--gray-500);">or click to select files (PDF, JPG, PNG)</p>
+                                        <p style="color: var(--gray-400); font-size: 0.8rem; margin-top: 0.5rem;">
+                                            You can upload multiple prescriptions at once
+                                        </p>
+                                        <input type="file" id="multiFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp" style="display: none;">
+                                    </div>
+
+                                    <div id="selectedFilesPreview" style="margin-top: 1rem; display: none;">
+                                        <h5><i class="fas fa-file-alt"></i> Selected Files:</h5>
+                                        <div id="filesListPreview" style="margin-top: 0.5rem;"></div>
+                                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                            <button class="btn btn-primary" onclick="processAllPrescriptions()" id="processAllBtn">
+                                                <i class="fas fa-play"></i> Process All Prescriptions
+                                            </button>
+                                            <button class="btn" onclick="clearSelectedFiles()">
+                                                <i class="fas fa-times"></i> Clear
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div id="processingStatus" style="margin-top: 1rem; display: none;">
+                                        <div class="status-box show processing">
+                                            <span class="spinner"></span>
+                                            <span id="processingText">Processing prescriptions...</span>
+                                        </div>
+                                        <div id="processingProgress" style="margin-top: 1rem;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results Summary -->
+                        <div class="card" style="margin-top: 1rem; display: none;" id="uploadResultsCard">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fas fa-check-circle"></i> Processing Complete</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="uploadResultsSummary"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Patient Detail View (New Page) -->
+            <section class="page-section" id="page-patient-detail">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <button class="btn" onclick="navigateTo('patients')">
+                            <i class="fas fa-arrow-left"></i> Back to Patients
                         </button>
+                    </div>
+                    <div id="patientDetailHeader">
+                        <h2 id="patientDetailName">Patient Name</h2>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="refreshPatientDetail()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Patient Info Cards -->
+                <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-value" id="detailPrescriptionCount">0</div>
+                        <div class="stat-label">Prescriptions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="detailActiveMeds">0</div>
+                        <div class="stat-label">Active Medications</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="detailDiscontinuedMeds">0</div>
+                        <div class="stat-label">Discontinued</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="detailTimelineEvents">0</div>
+                        <div class="stat-label">Timeline Events</div>
+                    </div>
+                    <div class="stat-card" id="detailRiskCard">
+                        <div class="stat-value" id="detailRiskLevel">-</div>
+                        <div class="stat-label">Risk Level</div>
+                    </div>
+                </div>
+
+                <!-- Safety Alerts -->
+                <div class="card" id="safetyAlertsCard" style="display: none; margin-top: 1.5rem;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #fef2f2, #fee2e2);">
+                        <span class="card-title" style="color: #dc2626;"><i class="fas fa-exclamation-triangle"></i> Active Safety Alerts</span>
+                    </div>
+                    <div class="card-body" id="safetyAlertsContainer"></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                    <!-- Current Medications -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-pills"></i> Current Medications</span>
+                        </div>
+                        <div class="card-body" id="currentMedicationsContainer">
+                            <div class="empty-state">
+                                <i class="fas fa-pills" style="font-size: 2rem; color: var(--gray-400);"></i>
+                                <p>No active medications</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patient Info -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-user"></i> Patient Information</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Patient ID</label>
+                                    <p id="detailPatientId" style="font-weight: 500;">-</p>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Age / Gender</label>
+                                    <p id="detailAgeGender" style="font-weight: 500;">-</p>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Known Allergies</label>
+                                    <p id="detailAllergies" style="font-weight: 500;">None recorded</p>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: var(--gray-500);">Chronic Conditions</label>
+                                    <p id="detailConditions" style="font-weight: 500;">None recorded</p>
+                                </div>
+                            </div>
+                            <div style="margin-top: 1rem;">
+                                <label style="font-size: 0.75rem; color: var(--gray-500);">Treating Doctors</label>
+                                <p id="detailDoctors" style="font-weight: 500;">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Complete Timeline -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-stream"></i> Complete Medical Timeline</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <select class="form-select" id="timelineFilter" style="width: auto;" onchange="filterTimeline()">
+                                <option value="">All Events</option>
+                                <option value="prescription_added">Prescriptions</option>
+                                <option value="medication_started">New Medications</option>
+                                <option value="medication_stopped">Discontinued</option>
+                                <option value="medication_changed">Dose Changes</option>
+                                <option value="safety_alert">Safety Alerts</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="timelineContainer">
+                        <div class="empty-state">
+                            <i class="fas fa-stream" style="font-size: 2rem; color: var(--gray-400);"></i>
+                            <p>No timeline events yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prescriptions List -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-file-medical"></i> All Prescriptions</span>
                     </div>
                     <div class="card-body no-padding">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Patient</th>
-                                    <th>Age / Gender</th>
-                                    <th>Contact</th>
-                                    <th>Allergies</th>
-                                    <th>Last Visit</th>
-                                    <th>Actions</th>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Doctor</th>
+                                    <th>Diagnosis</th>
+                                    <th>Medications</th>
+                                    <th>File</th>
                                 </tr>
                             </thead>
-                            <tbody id="patientsList">
+                            <tbody id="prescriptionsTableBody">
                                 <tr>
-                                    <td colspan="6">
-                                        <div class="empty-state">
-                                            <i class="fas fa-user-plus"></i>
-                                            <h4>No patients yet</h4>
-                                            <p>Add your first patient to get started</p>
-                                        </div>
+                                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                                        No prescriptions yet
                                     </td>
                                 </tr>
                             </tbody>
@@ -1534,54 +1794,390 @@
                 </div>
             </section>
 
-            <!-- Drug Interactions Page -->
-            <section class="page-section" id="page-interactions">
+            <!-- Drug Normalization Page -->
+            <section class="page-section" id="page-drug-normalize">
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="totalDrugsNormalized">0</div>
+                                <div class="stat-label">Drugs Normalized</div>
+                            </div>
+                            <div class="stat-icon blue"><i class="fas fa-pills"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="totalBrandNames">50+</div>
+                                <div class="stat-label">Brand Names in Database</div>
+                            </div>
+                            <div class="stat-icon green"><i class="fas fa-database"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <div class="stat-value" id="totalDrugClasses">15+</div>
+                                <div class="stat-label">Drug Classes</div>
+                            </div>
+                            <div class="stat-icon yellow"><i class="fas fa-layer-group"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <!-- Single Drug Normalization -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-search" style="margin-right: 0.5rem;"></i>Drug Lookup</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Enter drug name (brand or generic)</label>
+                                <input type="text" class="form-input" id="normalizeDrugInput" placeholder="e.g., Tylenol, Advil, Lipitor">
+                            </div>
+                            <button class="btn btn-primary" onclick="normalizeSingleDrug()">
+                                <i class="fas fa-exchange-alt"></i> Normalize
+                            </button>
+                            <div id="normalizeResult" style="margin-top: 1.5rem;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Normalization -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fas fa-list" style="margin-right: 0.5rem;"></i>Batch Normalization</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Enter multiple drugs (comma-separated)</label>
+                                <input type="text" class="form-input" id="batchNormalizeInput" placeholder="e.g., Tylenol, Advil, Zantac, Lipitor">
+                            </div>
+                            <button class="btn btn-primary" onclick="normalizeBatchDrugs()">
+                                <i class="fas fa-layer-group"></i> Normalize All
+                            </button>
+                            <div id="batchNormalizeResult" style="margin-top: 1.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Duplicate Detection -->
                 <div class="card">
                     <div class="card-header">
-                        <span class="card-title"><i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>Drug Interaction Checker</span>
+                        <span class="card-title"><i class="fas fa-clone" style="margin-right: 0.5rem;"></i>Duplicate Detection</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                            Check if a medication list contains the same drug under different names (brand vs generic).
+                        </p>
+                        <div class="form-group">
+                            <label class="form-label">Enter medications to check</label>
+                            <input type="text" class="form-input" id="duplicateCheckInput" placeholder="e.g., Tylenol, Paracetamol, Crocin, Advil">
+                        </div>
+                        <button class="btn btn-warning" onclick="checkDuplicateDrugs()">
+                            <i class="fas fa-search"></i> Check for Duplicates
+                        </button>
+                        <div id="duplicateResult" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Drug Comparison -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-balance-scale" style="margin-right: 0.5rem;"></i>Drug Comparison</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: end;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Drug 1</label>
+                                <input type="text" class="form-input" id="compareDrug1" placeholder="e.g., Tylenol">
+                            </div>
+                            <div style="padding-bottom: 0.5rem;">
+                                <i class="fas fa-exchange-alt" style="color: var(--gray-400);"></i>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Drug 2</label>
+                                <input type="text" class="form-input" id="compareDrug2" placeholder="e.g., Crocin">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="compareDrugs()">
+                            <i class="fas fa-balance-scale"></i> Compare
+                        </button>
+                        <div id="compareResult" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Drug Safety Analysis Page -->
+            <section class="page-section" id="page-interactions">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-icon blue" style="margin-bottom: 0.5rem;"><i class="fas fa-pills"></i></div>
+                        <div class="stat-value">30+</div>
+                        <div class="stat-label">Drug Interaction Pairs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green" style="margin-bottom: 0.5rem;"><i class="fas fa-layer-group"></i></div>
+                        <div class="stat-value">7</div>
+                        <div class="stat-label">Class-Level Interactions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow" style="margin-bottom: 0.5rem;"><i class="fas fa-allergies"></i></div>
+                        <div class="stat-value">4</div>
+                        <div class="stat-label">Allergy Cross-Reactivity</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red" style="margin-bottom: 0.5rem;"><i class="fas fa-ban"></i></div>
+                        <div class="stat-value">6</div>
+                        <div class="stat-label">Contraindication Groups</div>
+                    </div>
+                </div>
+
+                <!-- Comprehensive Safety Analysis -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-shield-alt" style="margin-right: 0.5rem;"></i>Comprehensive Drug Safety Analysis</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Medications (comma-separated)</label>
+                                <input type="text" class="form-input" id="safetyMedications" placeholder="e.g., Warfarin, Aspirin, Ibuprofen">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Patient Allergies (optional)</label>
+                                <input type="text" class="form-input" id="safetyAllergies" placeholder="e.g., Penicillin, Sulfa">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Patient Conditions (optional)</label>
+                                <input type="text" class="form-input" id="safetyConditions" placeholder="e.g., heart_failure, renal_impairment">
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="runComprehensiveSafetyAnalysis()">
+                            <i class="fas fa-search"></i> Run Complete Safety Analysis
+                        </button>
+                        <div id="comprehensiveSafetyResult" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Interaction Check -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-bolt" style="margin-right: 0.5rem;"></i>Quick Interaction Check</span>
                     </div>
                     <div class="card-body">
                         <div class="form-group">
                             <label class="form-label">Enter medications (comma-separated)</label>
                             <input type="text" class="form-input" id="interactionDrugs" placeholder="e.g., Aspirin, Warfarin, Ibuprofen">
                         </div>
-                        <button class="btn btn-primary" onclick="checkInteractions()">
+                        <button class="btn btn-primary" onclick="checkInteractionsV2()">
                             <i class="fas fa-search"></i> Check Interactions
                         </button>
-
                         <div id="interactionResults" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Severity Reference -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>Severity Classification Guide</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                            <div class="info-block" style="border-left: 4px solid #22c55e;">
+                                <h4 style="color: #22c55e;">Minor</h4>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">
+                                    Minimal clinical significance. Monitor if needed.
+                                </p>
+                            </div>
+                            <div class="info-block" style="border-left: 4px solid #f59e0b;">
+                                <h4 style="color: #f59e0b;">Moderate</h4>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">
+                                    May require dosage adjustment or monitoring.
+                                </p>
+                            </div>
+                            <div class="info-block" style="border-left: 4px solid #ef4444;">
+                                <h4 style="color: #ef4444;">Major</h4>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">
+                                    Significant clinical consequences. Avoid or use extreme caution.
+                                </p>
+                            </div>
+                            <div class="info-block" style="border-left: 4px solid #7c3aed;">
+                                <h4 style="color: #7c3aed;">Contraindicated</h4>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">
+                                    Life-threatening. Do NOT use together.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Allergies Page -->
+            <!-- Allergy Checker Page -->
             <section class="page-section" id="page-allergies">
                 <div class="card">
                     <div class="card-header">
-                        <span class="card-title"><i class="fas fa-allergies" style="margin-right: 0.5rem;"></i>Allergy Cross-Reactivity Database</span>
+                        <span class="card-title"><i class="fas fa-allergies" style="margin-right: 0.5rem;"></i>Medication Allergy Checker</span>
                     </div>
                     <div class="card-body">
                         <p style="color: var(--gray-600); margin-bottom: 1rem;">
-                            Common drug allergies and their cross-reactive medications.
+                            Check if medications are safe given patient allergies. Detects both direct matches and cross-reactivity risks.
                         </p>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                            <div class="info-block">
-                                <h4>Penicillin Allergy</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Medications to check</label>
+                                <input type="text" class="form-input" id="allergyCheckMeds" placeholder="e.g., Amoxicillin, Cephalexin">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Patient Allergies</label>
+                                <input type="text" class="form-input" id="allergyCheckAllergies" placeholder="e.g., Penicillin, Sulfa">
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="checkAllergyRisks()">
+                            <i class="fas fa-search"></i> Check Allergy Risks
+                        </button>
+                        <div id="allergyCheckResult" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Cross-Reactivity Reference -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-book-medical" style="margin-right: 0.5rem;"></i>Common Allergy Cross-Reactivity Patterns</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <div class="info-block" style="border-left: 4px solid #ef4444;">
+                                <h4><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Penicillin Allergy</h4>
                                 <p style="font-size: 0.8125rem; color: var(--gray-600);">
-                                    May cross-react with: Amoxicillin, Ampicillin, Cephalosporins (10% risk)
+                                    <strong>May cross-react with:</strong><br>
+                                    • Amoxicillin, Ampicillin, Piperacillin<br>
+                                    • Cephalosporins (1-10% risk)
                                 </p>
                             </div>
-                            <div class="info-block">
-                                <h4>Sulfa Allergy</h4>
+                            <div class="info-block" style="border-left: 4px solid #f59e0b;">
+                                <h4><i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Sulfa Allergy</h4>
                                 <p style="font-size: 0.8125rem; color: var(--gray-600);">
-                                    May cross-react with: Sulfasalazine, some diuretics (Furosemide), Celecoxib
+                                    <strong>May cross-react with:</strong><br>
+                                    • Sulfamethoxazole, Sulfasalazine<br>
+                                    • Some diuretics, Celecoxib
                                 </p>
                             </div>
-                            <div class="info-block">
-                                <h4>NSAID Allergy</h4>
+                            <div class="info-block" style="border-left: 4px solid #3b82f6;">
+                                <h4><i class="fas fa-exclamation-triangle" style="color: #3b82f6;"></i> NSAID/Aspirin Sensitivity</h4>
                                 <p style="font-size: 0.8125rem; color: var(--gray-600);">
-                                    May cross-react with: Aspirin, Ibuprofen, Naproxen, Diclofenac
+                                    <strong>May cross-react with:</strong><br>
+                                    • Ibuprofen, Diclofenac, Naproxen<br>
+                                    • Use COX-2 inhibitors with caution
                                 </p>
+                            </div>
+                            <div class="info-block" style="border-left: 4px solid #10b981;">
+                                <h4><i class="fas fa-exclamation-triangle" style="color: #10b981;"></i> Cephalosporin Allergy</h4>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">
+                                    <strong>May cross-react with:</strong><br>
+                                    • Cephalexin, Cefixime, Ceftriaxone<br>
+                                    • Penicillins (minor risk)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contraindications Checker -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-ban" style="margin-right: 0.5rem;"></i>Contraindication Checker</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Medications</label>
+                                <input type="text" class="form-input" id="contraMeds" placeholder="e.g., Metformin, Ibuprofen">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Patient Conditions</label>
+                                <select class="form-input" id="contraConditions" multiple style="height: 100px;">
+                                    <option value="renal_impairment">Renal Impairment</option>
+                                    <option value="liver_disease">Liver Disease</option>
+                                    <option value="heart_failure">Heart Failure</option>
+                                    <option value="asthma">Asthma</option>
+                                    <option value="pregnancy">Pregnancy</option>
+                                    <option value="gi_ulcer">GI Ulcer</option>
+                                </select>
+                                <small style="color: var(--gray-500);">Hold Ctrl/Cmd to select multiple</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-warning" onclick="checkContraindications()">
+                            <i class="fas fa-search"></i> Check Contraindications
+                        </button>
+                        <div id="contraResult" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Medication Changes Page -->
+            <section class="page-section" id="page-med-changes">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-exchange-alt" style="margin-right: 0.5rem;"></i>Medication Change Tracker</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                            Track changes in medication regimens over time. Detects new medications, dose changes, and discontinued drugs.
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- Previous Prescription -->
+                            <div class="info-block">
+                                <h4><i class="fas fa-calendar-minus"></i> Previous Prescription</h4>
+                                <div class="form-group">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-input" id="prevRxDate">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Medications (one per line: name, dosage, frequency)</label>
+                                    <textarea class="form-input" id="prevRxMeds" rows="4" placeholder="Amlodipine, 5mg, once daily
+Metformin, 500mg, twice daily"></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Prescription -->
+                            <div class="info-block">
+                                <h4><i class="fas fa-calendar-plus"></i> Current Prescription</h4>
+                                <div class="form-group">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-input" id="currRxDate">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Medications (one per line: name, dosage, frequency)</label>
+                                    <textarea class="form-input" id="currRxMeds" rows="4" placeholder="Amlodipine, 10mg, once daily
+Metformin, 500mg, twice daily
+Aspirin, 75mg, once daily"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="analyzeMedicationChanges()">
+                            <i class="fas fa-search"></i> Analyze Changes
+                        </button>
+                        <div id="medChangesResult" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Medication Overlap Analysis -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i>Medication Overlap Analysis</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                            Analyze overlapping medication periods to identify concurrent therapies.
+                        </p>
+                        <div id="overlapAnalysisResult">
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-alt" style="font-size: 2rem; color: var(--gray-400);"></i>
+                                <p>Analyze prescriptions above to see overlap data</p>
                             </div>
                         </div>
                     </div>
@@ -2107,11 +2703,19 @@ Examples:
                 'dashboard': 'Dashboard',
                 'scan': 'Scan Prescription',
                 'patients': 'Patient Management',
+                'patient-detail': 'Patient Details',
                 'history': 'Prescription History',
-                'interactions': 'Drug Interaction Checker',
-                'allergies': 'Allergy Database',
+                'drug-normalize': 'Drug Normalization',
+                'interactions': 'Drug Safety Analysis',
+                'allergies': 'Allergy & Contraindication Checker',
+                'med-changes': 'Medication Changes Tracker',
                 'analytics': 'Analytics & Reports',
-                'settings': 'Settings'
+                'settings': 'Settings',
+                'timeline': 'Medication Timeline',
+                'knowledge-graph': 'Knowledge Graph',
+                'ask-ai': 'Ask AI',
+                'review-queue': 'Review Queue',
+                'audit': 'Audit Trail'
             };
             document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
         }
@@ -2750,8 +3354,1131 @@ Examples:
             alert('Settings saved!');
         }
 
+        // ==================== Patient Prescription Management ====================
+        const PATIENT_API = 'http://localhost:8000/api/v2/patient-prescriptions';
+        
+        let currentPatientId = null;
+        let selectedFiles = [];
+        let currentPatientData = null;
+        let allTimelineEvents = [];
+
+        // Initialize patient upload area
+        document.addEventListener('DOMContentLoaded', () => {
+            initPatientUpload();
+            refreshPatientList();
+        });
+
+        function initPatientUpload() {
+            const uploadZone = document.getElementById('multiUploadZone');
+            const fileInput = document.getElementById('multiFileInput');
+
+            if (!uploadZone || !fileInput) return;
+
+            uploadZone.addEventListener('click', () => fileInput.click());
+
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = 'var(--success)';
+                uploadZone.style.background = 'rgba(34, 197, 94, 0.05)';
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.style.borderColor = 'var(--primary)';
+                uploadZone.style.background = 'transparent';
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = 'var(--primary)';
+                uploadZone.style.background = 'transparent';
+                handleFilesSelected(e.dataTransfer.files);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleFilesSelected(e.target.files);
+            });
+        }
+
+        function handleFilesSelected(files) {
+            selectedFiles = Array.from(files);
+            
+            if (selectedFiles.length === 0) return;
+
+            const previewArea = document.getElementById('selectedFilesPreview');
+            const filesList = document.getElementById('filesListPreview');
+            
+            previewArea.style.display = 'block';
+            
+            filesList.innerHTML = selectedFiles.map((f, idx) => `
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: var(--gray-50); border-radius: 8px; margin-bottom: 0.5rem;">
+                    <i class="fas fa-file-image" style="color: var(--primary);"></i>
+                    <span style="flex: 1;">${f.name}</span>
+                    <span style="color: var(--gray-500); font-size: 0.75rem;">${(f.size / 1024).toFixed(1)} KB</span>
+                    <span class="badge" id="fileStatus${idx}">Pending</span>
+                </div>
+            `).join('');
+        }
+
+        function clearSelectedFiles() {
+            selectedFiles = [];
+            document.getElementById('multiFileInput').value = '';
+            document.getElementById('selectedFilesPreview').style.display = 'none';
+            document.getElementById('filesListPreview').innerHTML = '';
+        }
+
+        function selectPatient() {
+            const patientId = document.getElementById('patientIdInput').value.trim();
+            const patientName = document.getElementById('patientNameInput').value.trim();
+            
+            if (!patientId) {
+                alert('Please enter a Patient ID');
+                return;
+            }
+
+            currentPatientId = patientId;
+            
+            // Show upload area
+            document.getElementById('noPatientSelectedMsg').style.display = 'none';
+            document.getElementById('prescriptionUploadArea').style.display = 'block';
+            
+            // Update badge
+            const badge = document.getElementById('selectedPatientBadge');
+            badge.style.display = 'inline-block';
+            badge.textContent = `Patient: ${patientId}${patientName ? ` (${patientName})` : ''}`;
+            badge.style.background = 'var(--success)';
+            badge.style.color = 'white';
+            
+            // Check if patient exists
+            checkExistingPatient(patientId);
+        }
+
+        async function checkExistingPatient(patientId) {
+            try {
+                const response = await fetch(`${PATIENT_API}/patients/${patientId}`);
+                if (response.ok) {
+                    const patient = await response.json();
+                    // Auto-fill fields
+                    if (patient.name) document.getElementById('patientNameInput').value = patient.name;
+                    if (patient.allergies?.length) document.getElementById('patientAllergiesInput').value = patient.allergies.join(', ');
+                    if (patient.chronic_conditions?.length) document.getElementById('patientConditionsInput').value = patient.chronic_conditions.join(', ');
+                }
+            } catch (e) {
+                // Patient doesn't exist yet, that's fine
+            }
+        }
+
+        async function refreshPatientList() {
+            try {
+                const response = await fetch(`${PATIENT_API}/patients`);
+                const patients = await response.json();
+                
+                const container = document.getElementById('existingPatientsList');
+                document.getElementById('totalPatientsCount').textContent = patients.length;
+                
+                // Calculate totals
+                let totalRx = 0, totalMeds = 0;
+                patients.forEach(p => {
+                    totalRx += p.prescriptions_count || 0;
+                    totalMeds += p.active_medications || 0;
+                });
+                document.getElementById('totalPrescriptionsCount').textContent = totalRx;
+                document.getElementById('activeMedicationsCount').textContent = totalMeds;
+                
+                if (patients.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="padding: 2rem;">
+                            <i class="fas fa-user-slash" style="font-size: 1.5rem; color: var(--gray-400);"></i>
+                            <p style="margin-top: 0.5rem;">No patients yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = patients.map(p => `
+                    <div class="patient-list-item" onclick="loadPatientDetail('${p.patient_id}')" 
+                         style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-100); cursor: pointer; transition: background 0.2s;"
+                         onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background='transparent'">
+                        <div>
+                            <div style="font-weight: 500;">${p.name}</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500);">ID: ${p.patient_id}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.875rem;">${p.prescriptions_count} Rx</div>
+                            <div style="font-size: 0.7rem; color: var(--gray-500);">${p.active_medications} active meds</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load patients:', e);
+            }
+        }
+
+        async function processAllPrescriptions() {
+            if (!currentPatientId) {
+                alert('Please select a patient first');
+                return;
+            }
+
+            if (selectedFiles.length === 0) {
+                alert('Please select files to upload');
+                return;
+            }
+
+            const patientName = document.getElementById('patientNameInput').value.trim();
+            const allergies = document.getElementById('patientAllergiesInput').value.trim();
+            const conditions = document.getElementById('patientConditionsInput').value.trim();
+
+            // Show processing status
+            document.getElementById('processingStatus').style.display = 'block';
+            document.getElementById('processAllBtn').disabled = true;
+            
+            const progressDiv = document.getElementById('processingProgress');
+            const results = [];
+            const errors = [];
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                
+                // Update status
+                document.getElementById('processingText').textContent = `Processing ${i + 1} of ${selectedFiles.length}: ${file.name}`;
+                document.getElementById(`fileStatus${i}`).textContent = 'Processing...';
+                document.getElementById(`fileStatus${i}`).style.background = 'var(--warning)';
+                document.getElementById(`fileStatus${i}`).style.color = 'white';
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('patient_id', currentPatientId);
+                    if (patientName) formData.append('patient_name', patientName);
+                    if (allergies) formData.append('allergies', allergies);
+                    if (conditions) formData.append('conditions', conditions);
+
+                    const response = await fetch(`${PATIENT_API}/scan`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        results.push({
+                            file: file.name,
+                            prescription_number: data.analysis.prescription_number,
+                            changes: data.analysis.changes_detected,
+                            safety: data.analysis.safety_analysis
+                        });
+                        
+                        document.getElementById(`fileStatus${i}`).textContent = '✓ Done';
+                        document.getElementById(`fileStatus${i}`).style.background = 'var(--success)';
+                        
+                        // Show changes in progress
+                        const changes = data.analysis.changes_detected;
+                        if (changes.new_medications?.length || changes.stopped_medications?.length || changes.dose_changes?.length) {
+                            progressDiv.innerHTML += `
+                                <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: var(--gray-50); border-radius: 6px; font-size: 0.8rem;">
+                                    <strong>Rx #${data.analysis.prescription_number}:</strong>
+                                    ${changes.new_medications?.length ? `<span style="color: var(--success);">+${changes.new_medications.length} new</span>` : ''}
+                                    ${changes.stopped_medications?.length ? `<span style="color: var(--danger);"> -${changes.stopped_medications.length} stopped</span>` : ''}
+                                    ${changes.dose_changes?.length ? `<span style="color: var(--warning);"> ${changes.dose_changes.length} changed</span>` : ''}
+                                </div>
+                            `;
+                        }
+                    } else {
+                        throw new Error(data.detail || 'Processing failed');
+                    }
+                } catch (e) {
+                    errors.push({ file: file.name, error: e.message });
+                    document.getElementById(`fileStatus${i}`).textContent = '✗ Error';
+                    document.getElementById(`fileStatus${i}`).style.background = 'var(--danger)';
+                }
+            }
+
+            // Show completion
+            document.getElementById('processingText').textContent = `✓ Completed: ${results.length} of ${selectedFiles.length} processed`;
+            document.getElementById('processAllBtn').disabled = false;
+
+            // Show results card
+            document.getElementById('uploadResultsCard').style.display = 'block';
+            document.getElementById('uploadResultsSummary').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                    <div style="text-align: center; padding: 1rem; background: #dcfce7; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: 600; color: #059669;">${results.length}</div>
+                        <div style="font-size: 0.8rem; color: #065f46;">Successfully Processed</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: 600; color: #d97706;">${results.reduce((sum, r) => sum + (r.changes?.new_medications?.length || 0), 0)}</div>
+                        <div style="font-size: 0.8rem; color: #92400e;">New Medications</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: ${errors.length ? '#fee2e2' : '#e0f2fe'}; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: 600; color: ${errors.length ? '#dc2626' : '#0284c7'};">${errors.length || 'None'}</div>
+                        <div style="font-size: 0.8rem; color: ${errors.length ? '#991b1b' : '#075985'};">Errors</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="loadPatientDetail('${currentPatientId}')">
+                    <i class="fas fa-user"></i> View Patient Timeline & Details
+                </button>
+            `;
+
+            // Refresh patient list
+            refreshPatientList();
+        }
+
+        async function loadPatientDetail(patientId) {
+            currentPatientId = patientId;
+            
+            // Navigate to detail page
+            navigateTo('patient-detail');
+            
+            try {
+                // Load patient summary
+                const summaryRes = await fetch(`${PATIENT_API}/patients/${patientId}/summary`);
+                const summary = await summaryRes.json();
+                
+                currentPatientData = summary;
+                
+                // Update header
+                document.getElementById('patientDetailName').textContent = summary.patient.name || patientId;
+                
+                // Update stats
+                document.getElementById('detailPrescriptionCount').textContent = summary.statistics.total_prescriptions;
+                document.getElementById('detailActiveMeds').textContent = summary.statistics.current_active_medications;
+                document.getElementById('detailDiscontinuedMeds').textContent = summary.statistics.discontinued_medications;
+                document.getElementById('detailTimelineEvents').textContent = summary.statistics.timeline_events;
+                
+                // Risk level
+                const riskLevel = summary.patient.safety_alerts?.length > 0 ? 'HIGH' : 'LOW';
+                document.getElementById('detailRiskLevel').textContent = riskLevel;
+                document.getElementById('detailRiskCard').style.background = riskLevel === 'HIGH' ? 
+                    'linear-gradient(135deg, #fef2f2, #fee2e2)' : 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
+                
+                // Patient info
+                document.getElementById('detailPatientId').textContent = summary.patient.patient_id;
+                document.getElementById('detailAgeGender').textContent = 
+                    `${summary.patient.age || 'Unknown'} / ${summary.patient.gender || 'Unknown'}`;
+                document.getElementById('detailAllergies').textContent = 
+                    summary.patient.allergies?.length ? summary.patient.allergies.join(', ') : 'None recorded';
+                document.getElementById('detailConditions').textContent = 
+                    summary.patient.chronic_conditions?.length ? summary.patient.chronic_conditions.join(', ') : 'None recorded';
+                document.getElementById('detailDoctors').textContent = 
+                    summary.all_doctors?.length ? summary.all_doctors.join(', ') : '-';
+                
+                // Safety alerts
+                const alertsCard = document.getElementById('safetyAlertsCard');
+                const alertsContainer = document.getElementById('safetyAlertsContainer');
+                
+                if (summary.patient.safety_alerts?.length > 0) {
+                    alertsCard.style.display = 'block';
+                    document.getElementById('activeAlertsCount').textContent = summary.patient.safety_alerts.length;
+                    alertsContainer.innerHTML = summary.patient.safety_alerts.map(alert => `
+                        <div class="alert-box danger" style="margin-bottom: 0.5rem;">
+                            <span class="alert-icon">🚨</span>
+                            <div class="alert-content">
+                                <h5>${alert.type?.toUpperCase() || 'ALERT'}: ${alert.drugs?.join(' + ') || alert.drug || 'Unknown'}</h5>
+                                <p>${alert.description || ''}</p>
+                                ${alert.action_required ? `<p style="color: var(--danger);"><strong>Action:</strong> ${alert.action_required}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    alertsCard.style.display = 'none';
+                    document.getElementById('activeAlertsCount').textContent = '0';
+                }
+                
+                // Current medications
+                const medsContainer = document.getElementById('currentMedicationsContainer');
+                if (summary.patient.current_medications?.length > 0) {
+                    medsContainer.innerHTML = summary.patient.current_medications.map(med => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--gray-50); border-radius: 8px; margin-bottom: 0.5rem;">
+                            <div>
+                                <div style="font-weight: 500;">${med.name}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">${med.generic_name}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 500; color: var(--primary);">${med.dosage}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">${med.frequency}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    medsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-pills" style="font-size: 2rem; color: var(--gray-400);"></i>
+                            <p>No active medications</p>
+                        </div>
+                    `;
+                }
+                
+                // Load timeline
+                loadPatientTimeline(patientId);
+                
+                // Load prescriptions table
+                loadPrescriptionsTable(summary.patient.prescriptions);
+                
+            } catch (e) {
+                console.error('Failed to load patient:', e);
+                alert('Failed to load patient details: ' + e.message);
+            }
+        }
+
+        async function loadPatientTimeline(patientId) {
+            try {
+                const response = await fetch(`${PATIENT_API}/patients/${patientId}/timeline`);
+                const data = await response.json();
+                
+                allTimelineEvents = data.timeline || [];
+                renderTimeline(allTimelineEvents);
+            } catch (e) {
+                console.error('Failed to load timeline:', e);
+            }
+        }
+
+        function filterTimeline() {
+            const filter = document.getElementById('timelineFilter').value;
+            const filtered = filter ? 
+                allTimelineEvents.filter(e => e.event_type === filter) : 
+                allTimelineEvents;
+            renderTimeline(filtered);
+        }
+
+        function renderTimeline(events) {
+            const container = document.getElementById('timelineContainer');
+            
+            if (!events || events.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-stream" style="font-size: 2rem; color: var(--gray-400);"></i>
+                        <p>No timeline events</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const eventIcons = {
+                'prescription_added': { icon: 'fa-file-medical', color: '#3b82f6' },
+                'medication_started': { icon: 'fa-plus-circle', color: '#22c55e' },
+                'medication_stopped': { icon: 'fa-minus-circle', color: '#ef4444' },
+                'medication_changed': { icon: 'fa-exchange-alt', color: '#f59e0b' },
+                'medication_restarted': { icon: 'fa-redo', color: '#8b5cf6' },
+                'diagnosis_recorded': { icon: 'fa-stethoscope', color: '#06b6d4' },
+                'safety_alert': { icon: 'fa-exclamation-triangle', color: '#dc2626' }
+            };
+
+            container.innerHTML = events.map(event => {
+                const config = eventIcons[event.event_type] || { icon: 'fa-circle', color: '#6b7280' };
+                return `
+                    <div style="display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--gray-100);">
+                        <div style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: ${config.color}20; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas ${config.icon}" style="color: ${config.color};"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="font-weight: 500;">${event.description}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">${event.event_date}</div>
+                            </div>
+                            ${event.details ? `
+                                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--gray-600); background: var(--gray-50); padding: 0.5rem; border-radius: 6px;">
+                                    ${Object.entries(event.details).filter(([k, v]) => v && k !== 'diagnosis').map(([k, v]) => 
+                                        `<span style="margin-right: 1rem;"><strong>${k.replace(/_/g, ' ')}:</strong> ${Array.isArray(v) ? v.join(', ') : v}</span>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadPrescriptionsTable(prescriptions) {
+            const tbody = document.getElementById('prescriptionsTableBody');
+            
+            if (!prescriptions || prescriptions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                            No prescriptions yet
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = prescriptions.map((rx, idx) => `
+                <tr>
+                    <td><strong>#${idx + 1}</strong></td>
+                    <td>${rx.prescription_date || '-'}</td>
+                    <td>
+                        <div>${rx.doctor_name || 'Unknown'}</div>
+                        <div style="font-size: 0.7rem; color: var(--gray-500);">${rx.clinic_name || ''}</div>
+                    </td>
+                    <td>${rx.diagnosis?.join(', ') || '-'}</td>
+                    <td>
+                        ${rx.medications?.map(m => `<span class="tag" style="margin: 0.125rem;">${m.name || m}</span>`).join('') || '-'}
+                    </td>
+                    <td style="font-size: 0.75rem; color: var(--gray-500);">${rx.file_name || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function refreshPatientDetail() {
+            if (currentPatientId) {
+                loadPatientDetail(currentPatientId);
+            }
+        }
+
         // ==================== Enhanced Features ====================
         const API_V2_BASE = 'http://localhost:8000/api/v2';
+
+        // ==================== Drug Normalization Functions ====================
+        
+        async function normalizeSingleDrug() {
+            const drugName = document.getElementById('normalizeDrugInput').value.trim();
+            if (!drugName) {
+                alert('Please enter a drug name');
+                return;
+            }
+
+            const resultDiv = document.getElementById('normalizeResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Looking up drug...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/normalize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ drug_name: drugName })
+                });
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <div class="info-block" style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-left: 4px solid var(--primary);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h4 style="color: var(--primary); margin-bottom: 0.5rem;">${data.generic_name}</h4>
+                                <p style="font-size: 0.75rem; color: var(--gray-500);">
+                                    ${data.is_brand_name ? `Brand name: ${data.original_name}` : 'Generic name'}
+                                </p>
+                            </div>
+                            <span class="badge" style="background: ${data.confidence > 0.8 ? '#dcfce7' : '#fef3c7'}; color: ${data.confidence > 0.8 ? '#059669' : '#d97706'};">
+                                ${Math.round(data.confidence * 100)}% confidence
+                            </span>
+                        </div>
+                        <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <div>
+                                <strong style="font-size: 0.75rem; color: var(--gray-600);">Drug Class</strong>
+                                <p style="font-size: 0.875rem;">${data.drug_class.replace(/_/g, ' ')}</p>
+                            </div>
+                            <div>
+                                <strong style="font-size: 0.75rem; color: var(--gray-600);">Common Dosages</strong>
+                                <p style="font-size: 0.875rem;">${data.common_dosages?.join(', ') || 'N/A'}</p>
+                            </div>
+                        </div>
+                        ${data.brand_names?.length > 0 ? `
+                            <div style="margin-top: 1rem;">
+                                <strong style="font-size: 0.75rem; color: var(--gray-600);">Known Brand Names</strong>
+                                <p style="font-size: 0.875rem;">${data.brand_names.slice(0, 6).join(', ')}${data.brand_names.length > 6 ? '...' : ''}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // Update counter
+                const counter = document.getElementById('totalDrugsNormalized');
+                counter.textContent = parseInt(counter.textContent) + 1;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function normalizeBatchDrugs() {
+            const drugs = document.getElementById('batchNormalizeInput').value.trim();
+            if (!drugs) {
+                alert('Please enter drug names');
+                return;
+            }
+
+            const drugList = drugs.split(',').map(d => d.trim()).filter(d => d);
+            const resultDiv = document.getElementById('batchNormalizeResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Normalizing drugs...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/normalize/batch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ drug_names: drugList })
+                });
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead>
+                                <tr style="background: var(--gray-100);">
+                                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--gray-200);">Original</th>
+                                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--gray-200);">Generic Name</th>
+                                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--gray-200);">Drug Class</th>
+                                    <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid var(--gray-200);">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.drugs.map(drug => `
+                                    <tr style="border-bottom: 1px solid var(--gray-100);">
+                                        <td style="padding: 0.75rem;">${drug.original_name} ${drug.is_brand_name ? '<span style="color: var(--info); font-size: 0.7rem;">BRAND</span>' : ''}</td>
+                                        <td style="padding: 0.75rem; font-weight: 500;">${drug.generic_name}</td>
+                                        <td style="padding: 0.75rem;">${drug.drug_class.replace(/_/g, ' ')}</td>
+                                        <td style="padding: 0.75rem; text-align: center;">
+                                            <span class="badge" style="background: ${drug.confidence > 0.8 ? '#dcfce7' : '#fef3c7'}; color: ${drug.confidence > 0.8 ? '#059669' : '#d97706'};">
+                                                ${Math.round(drug.confidence * 100)}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function checkDuplicateDrugs() {
+            const drugs = document.getElementById('duplicateCheckInput').value.trim();
+            if (!drugs) {
+                alert('Please enter medications');
+                return;
+            }
+
+            const drugList = drugs.split(',').map(d => d.trim()).filter(d => d);
+            const resultDiv = document.getElementById('duplicateResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Checking for duplicates...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/duplicates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ medications: drugList })
+                });
+                const data = await response.json();
+
+                if (data.has_duplicates) {
+                    resultDiv.innerHTML = data.duplicates.map(dup => `
+                        <div class="alert-box warning">
+                            <span class="alert-icon">⚠️</span>
+                            <div class="alert-content">
+                                <h5>Duplicate Found: ${dup.generic_name}</h5>
+                                <p><strong>Same drug under different names:</strong> ${dup.medications.join(', ')}</p>
+                                <p style="color: var(--warning);">${dup.warning}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert-box info">
+                            <span class="alert-icon">✅</span>
+                            <div class="alert-content">
+                                <h5>No Duplicates Found</h5>
+                                <p>All medications appear to be unique drugs.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function compareDrugs() {
+            const drug1 = document.getElementById('compareDrug1').value.trim();
+            const drug2 = document.getElementById('compareDrug2').value.trim();
+            if (!drug1 || !drug2) {
+                alert('Please enter both drug names');
+                return;
+            }
+
+            const resultDiv = document.getElementById('compareResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Comparing drugs...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/compare`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ drug1, drug2 })
+                });
+                const data = await response.json();
+
+                const isSame = data.is_same_drug;
+                resultDiv.innerHTML = `
+                    <div class="alert-box ${isSame ? 'warning' : 'info'}">
+                        <span class="alert-icon">${isSame ? '⚠️' : '✅'}</span>
+                        <div class="alert-content">
+                            <h5>${isSame ? 'Same Medication!' : 'Different Medications'}</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                                <div>
+                                    <strong>${data.drug1.original}</strong><br>
+                                    Generic: ${data.drug1.generic}<br>
+                                    Class: ${data.drug1.class.replace(/_/g, ' ')}
+                                </div>
+                                <div>
+                                    <strong>${data.drug2.original}</strong><br>
+                                    Generic: ${data.drug2.generic}<br>
+                                    Class: ${data.drug2.class.replace(/_/g, ' ')}
+                                </div>
+                            </div>
+                            ${isSame ? `<p style="margin-top: 0.5rem; color: var(--warning);"><strong>Warning:</strong> These are the same medication under different names!</p>` : ''}
+                            ${data.same_class && !isSame ? `<p style="margin-top: 0.5rem; color: var(--info);">Note: Same therapeutic class - check for duplicate therapy.</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        // ==================== Drug Safety Functions ====================
+
+        async function runComprehensiveSafetyAnalysis() {
+            const meds = document.getElementById('safetyMedications').value.trim();
+            const allergies = document.getElementById('safetyAllergies').value.trim();
+            const conditions = document.getElementById('safetyConditions').value.trim();
+
+            if (!meds) {
+                alert('Please enter medications');
+                return;
+            }
+
+            const resultDiv = document.getElementById('comprehensiveSafetyResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Running comprehensive safety analysis...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/safety/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        medications: meds.split(',').map(m => m.trim()).filter(m => m),
+                        patient_allergies: allergies ? allergies.split(',').map(a => a.trim()).filter(a => a) : [],
+                        patient_conditions: conditions ? conditions.split(',').map(c => c.trim()).filter(c => c) : [],
+                        suppress_low_value: false
+                    })
+                });
+                const data = await response.json();
+
+                // Risk Level Badge
+                const riskColors = {
+                    'MINIMAL': '#22c55e', 'LOW': '#84cc16', 'MODERATE': '#f59e0b', 
+                    'HIGH': '#ef4444', 'CRITICAL': '#7c3aed'
+                };
+                
+                let html = `
+                    <div style="background: linear-gradient(135deg, ${riskColors[data.overall_risk_level]}20, ${riskColors[data.overall_risk_level]}10); 
+                                border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid ${riskColors[data.overall_risk_level]};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="color: ${riskColors[data.overall_risk_level]}; margin-bottom: 0.25rem;">
+                                    Overall Risk: ${data.overall_risk_level}
+                                </h3>
+                                <p style="color: var(--gray-600); font-size: 0.875rem;">
+                                    ${data.interactions?.length || 0} interactions · ${data.allergy_alerts?.length || 0} allergy alerts · ${data.contraindications?.length || 0} contraindications
+                                </p>
+                            </div>
+                            <div style="font-size: 2.5rem;">${data.overall_risk_level === 'CRITICAL' ? '🚨' : data.overall_risk_level === 'HIGH' ? '⚠️' : '✓'}</div>
+                        </div>
+                    </div>
+                `;
+
+                // High Priority Alerts
+                if (data.high_priority_alerts?.length > 0) {
+                    html += '<h4 style="margin-bottom: 0.75rem;"><i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> High Priority Alerts</h4>';
+                    html += data.high_priority_alerts.map(alert => `
+                        <div class="alert-box danger" style="margin-bottom: 0.75rem;">
+                            <span class="alert-icon">🚨</span>
+                            <div class="alert-content">
+                                <h5>${alert.type === 'interaction' ? alert.drugs.join(' + ') : alert.drug}</h5>
+                                <p><strong>Severity:</strong> ${alert.severity.toUpperCase()}</p>
+                                <p>${alert.description}</p>
+                                <p style="color: var(--danger);"><strong>Action:</strong> ${alert.action_required}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Drug Interactions
+                if (data.interactions?.length > 0) {
+                    html += '<h4 style="margin: 1rem 0 0.75rem;"><i class="fas fa-pills" style="color: #f59e0b;"></i> Drug-Drug Interactions</h4>';
+                    html += data.interactions.map(int => `
+                        <div class="alert-box ${int.severity === 'major' || int.severity === 'contraindicated' ? 'danger' : 'warning'}" style="margin-bottom: 0.5rem;">
+                            <span class="alert-icon">${int.severity === 'contraindicated' ? '🚫' : int.severity === 'major' ? '🚨' : '⚠️'}</span>
+                            <div class="alert-content">
+                                <h5>${int.drug1} + ${int.drug2}</h5>
+                                <p>${int.description}</p>
+                                ${int.management ? `<p><strong>Management:</strong> ${int.management}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Allergy Alerts
+                if (data.allergy_alerts?.length > 0) {
+                    html += '<h4 style="margin: 1rem 0 0.75rem;"><i class="fas fa-allergies" style="color: #ef4444;"></i> Allergy Alerts</h4>';
+                    html += data.allergy_alerts.map(alert => `
+                        <div class="alert-box danger" style="margin-bottom: 0.5rem;">
+                            <span class="alert-icon">🚨</span>
+                            <div class="alert-content">
+                                <h5>${alert.drug}</h5>
+                                <p>${alert.description}</p>
+                                <p><strong>Risk Type:</strong> ${alert.risk_type}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Contraindications
+                if (data.contraindications?.length > 0) {
+                    html += '<h4 style="margin: 1rem 0 0.75rem;"><i class="fas fa-ban" style="color: #7c3aed;"></i> Contraindications</h4>';
+                    html += data.contraindications.map(contra => `
+                        <div class="alert-box ${contra.level === 'contraindicated' ? 'danger' : 'warning'}" style="margin-bottom: 0.5rem;">
+                            <span class="alert-icon">${contra.level === 'contraindicated' ? '🚫' : '⚠️'}</span>
+                            <div class="alert-content">
+                                <h5>${contra.drug}</h5>
+                                <p>${contra.description}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Duplicate Therapies
+                if (data.duplicate_therapies?.length > 0) {
+                    html += '<h4 style="margin: 1rem 0 0.75rem;"><i class="fas fa-clone" style="color: #0891b2;"></i> Duplicate Therapy</h4>';
+                    html += data.duplicate_therapies.map(dup => `
+                        <div class="alert-box info" style="margin-bottom: 0.5rem;">
+                            <span class="alert-icon">📋</span>
+                            <div class="alert-content">
+                                <h5>${dup.drugs.join(', ')}</h5>
+                                <p>${dup.description}</p>
+                                <p><strong>Recommendation:</strong> ${dup.recommendation}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                if (!data.interactions?.length && !data.allergy_alerts?.length && !data.contraindications?.length) {
+                    html += `
+                        <div class="alert-box info">
+                            <span class="alert-icon">✅</span>
+                            <div class="alert-content">
+                                <h5>No Safety Issues Found</h5>
+                                <p>The medication combination appears safe based on available data.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function checkInteractionsV2() {
+            const drugs = document.getElementById('interactionDrugs').value;
+            if (!drugs.trim()) {
+                alert('Please enter medications');
+                return;
+            }
+
+            const resultDiv = document.getElementById('interactionResults');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Checking interactions...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/interactions/check`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        medications: drugs.split(',').map(d => d.trim()).filter(d => d)
+                    })
+                });
+                const data = await response.json();
+
+                if (data.interaction_count > 0) {
+                    resultDiv.innerHTML = data.interactions.map(i => `
+                        <div class="alert-box ${i.severity === 'major' || i.severity === 'contraindicated' ? 'danger' : 'warning'}">
+                            <span class="alert-icon">${i.severity === 'contraindicated' ? '🚫' : i.severity === 'major' ? '🚨' : '⚠️'}</span>
+                            <div class="alert-content">
+                                <h5>${i.drug1} + ${i.drug2}</h5>
+                                <p><strong>Severity:</strong> <span class="badge" style="background: ${i.severity === 'contraindicated' ? '#7c3aed' : i.severity === 'major' ? '#ef4444' : '#f59e0b'}; color: white;">${i.severity.toUpperCase()}</span></p>
+                                <p>${i.description}</p>
+                                ${i.mechanism ? `<p><strong>Mechanism:</strong> ${i.mechanism}</p>` : ''}
+                                ${i.clinical_effects ? `<p><strong>Clinical Effects:</strong> ${i.clinical_effects}</p>` : ''}
+                                ${i.management ? `<p><strong>Management:</strong> ${i.management}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert-box info">
+                            <span class="alert-icon">✅</span>
+                            <div class="alert-content">
+                                <h5>No Interactions Found</h5>
+                                <p>The entered medications appear safe to use together.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function checkAllergyRisks() {
+            const meds = document.getElementById('allergyCheckMeds').value.trim();
+            const allergies = document.getElementById('allergyCheckAllergies').value.trim();
+
+            if (!meds || !allergies) {
+                alert('Please enter both medications and allergies');
+                return;
+            }
+
+            const resultDiv = document.getElementById('allergyCheckResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Checking allergy risks...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/allergies/check`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        medications: meds.split(',').map(m => m.trim()).filter(m => m),
+                        allergies: allergies.split(',').map(a => a.trim()).filter(a => a)
+                    })
+                });
+                const data = await response.json();
+
+                if (data.alert_count > 0) {
+                    resultDiv.innerHTML = data.allergy_alerts.map(alert => `
+                        <div class="alert-box danger">
+                            <span class="alert-icon">🚨</span>
+                            <div class="alert-content">
+                                <h5>${alert.drug}</h5>
+                                <p><strong>Allergen:</strong> ${alert.allergen}</p>
+                                <p><strong>Risk Type:</strong> ${alert.risk_type === 'direct' ? 'Direct Match' : 'Cross-Reactivity'}</p>
+                                <p>${alert.description}</p>
+                                ${alert.alternatives?.length > 0 ? `<p><strong>Alternatives:</strong> ${alert.alternatives.join(', ')}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert-box info">
+                            <span class="alert-icon">✅</span>
+                            <div class="alert-content">
+                                <h5>No Allergy Risks Found</h5>
+                                <p>The medications appear safe based on the provided allergies.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function checkContraindications() {
+            const meds = document.getElementById('contraMeds').value.trim();
+            const conditionsSelect = document.getElementById('contraConditions');
+            const conditions = Array.from(conditionsSelect.selectedOptions).map(opt => opt.value);
+
+            if (!meds || conditions.length === 0) {
+                alert('Please enter medications and select conditions');
+                return;
+            }
+
+            const resultDiv = document.getElementById('contraResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Checking contraindications...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/drugs/contraindications/check`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        medications: meds.split(',').map(m => m.trim()).filter(m => m),
+                        conditions: conditions
+                    })
+                });
+                const data = await response.json();
+
+                if (data.contraindication_count > 0) {
+                    resultDiv.innerHTML = data.contraindications.map(contra => `
+                        <div class="alert-box ${contra.level === 'contraindicated' ? 'danger' : 'warning'}">
+                            <span class="alert-icon">${contra.level === 'contraindicated' ? '🚫' : '⚠️'}</span>
+                            <div class="alert-content">
+                                <h5>${contra.drug}</h5>
+                                <p><strong>Condition:</strong> ${contra.condition.replace(/_/g, ' ')}</p>
+                                <p><strong>Level:</strong> ${contra.level.toUpperCase()}</p>
+                                <p>${contra.description}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert-box info">
+                            <span class="alert-icon">✅</span>
+                            <div class="alert-content">
+                                <h5>No Contraindications Found</h5>
+                                <p>The medications appear safe for the selected conditions.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        // ==================== Temporal Reasoning Functions ====================
+
+        async function analyzeMedicationChanges() {
+            const prevDate = document.getElementById('prevRxDate').value;
+            const currDate = document.getElementById('currRxDate').value;
+            const prevMeds = document.getElementById('prevRxMeds').value.trim();
+            const currMeds = document.getElementById('currRxMeds').value.trim();
+
+            if (!prevDate || !currDate || !prevMeds || !currMeds) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            // Parse medications
+            const parseMeds = (text) => {
+                return text.split('\n').map(line => {
+                    const parts = line.split(',').map(p => p.trim());
+                    return {
+                        medication_name: parts[0] || '',
+                        dosage: parts[1] || '',
+                        frequency: parts[2] || ''
+                    };
+                }).filter(m => m.medication_name);
+            };
+
+            const resultDiv = document.getElementById('medChangesResult');
+            resultDiv.innerHTML = '<div class="status-box show processing"><span class="spinner"></span> Analyzing medication changes...</div>';
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/temporal/medication-changes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prescriptions: [
+                            { date: prevDate, medications: parseMeds(prevMeds) },
+                            { date: currDate, medications: parseMeds(currMeds) }
+                        ]
+                    })
+                });
+                const data = await response.json();
+
+                let html = `<div style="margin-bottom: 1rem;"><strong>Total Changes:</strong> ${data.total_changes}</div>`;
+                
+                // Started medications
+                if (data.grouped_changes.started?.length > 0) {
+                    html += `
+                        <h5 style="color: #10b981; margin-top: 1rem;"><i class="fas fa-plus-circle"></i> Started</h5>
+                        ${data.grouped_changes.started.map(c => `
+                            <div class="info-block" style="border-left: 4px solid #10b981; margin-bottom: 0.5rem;">
+                                <strong>${c.medication_name}</strong>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">${c.new_value} - Started on ${c.change_date}</p>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                // Dose changes
+                if (data.grouped_changes.dose_changed?.length > 0) {
+                    html += `
+                        <h5 style="color: #f59e0b; margin-top: 1rem;"><i class="fas fa-edit"></i> Dose Changed</h5>
+                        ${data.grouped_changes.dose_changed.map(c => `
+                            <div class="info-block" style="border-left: 4px solid #f59e0b; margin-bottom: 0.5rem;">
+                                <strong>${c.medication_name}</strong>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">${c.old_value} → ${c.new_value}</p>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                // Frequency changes
+                if (data.grouped_changes.frequency_changed?.length > 0) {
+                    html += `
+                        <h5 style="color: #3b82f6; margin-top: 1rem;"><i class="fas fa-clock"></i> Frequency Changed</h5>
+                        ${data.grouped_changes.frequency_changed.map(c => `
+                            <div class="info-block" style="border-left: 4px solid #3b82f6; margin-bottom: 0.5rem;">
+                                <strong>${c.medication_name}</strong>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">${c.old_value} → ${c.new_value}</p>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                // Stopped medications
+                if (data.grouped_changes.stopped?.length > 0) {
+                    html += `
+                        <h5 style="color: #ef4444; margin-top: 1rem;"><i class="fas fa-minus-circle"></i> Stopped</h5>
+                        ${data.grouped_changes.stopped.map(c => `
+                            <div class="info-block" style="border-left: 4px solid #ef4444; margin-bottom: 0.5rem;">
+                                <strong>${c.medication_name}</strong>
+                                <p style="font-size: 0.8125rem; color: var(--gray-600);">Stopped on ${c.change_date}</p>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                resultDiv.innerHTML = html;
+
+                // Also load overlap analysis
+                loadOverlapAnalysis(prevDate, currDate, parseMeds(prevMeds), parseMeds(currMeds));
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert-box danger"><span class="alert-icon">❌</span><div class="alert-content"><h5>Error</h5><p>${error.message}</p></div></div>`;
+            }
+        }
+
+        async function loadOverlapAnalysis(prevDate, currDate, prevMeds, currMeds) {
+            const resultDiv = document.getElementById('overlapAnalysisResult');
+
+            try {
+                const response = await fetch(`${API_V2_BASE}/temporal/overlaps`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prescriptions: [
+                            { date: prevDate, medications: prevMeds },
+                            { date: currDate, medications: currMeds }
+                        ]
+                    })
+                });
+                const data = await response.json();
+
+                if (data.overlap_count > 0) {
+                    resultDiv.innerHTML = `
+                        <div style="margin-bottom: 1rem;"><strong>Overlapping Medications:</strong> ${data.overlap_count} pairs</div>
+                        ${data.significant_overlaps.map(o => `
+                            <div class="info-block" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div>
+                                    <strong>${o.medication1}</strong> + <strong>${o.medication2}</strong>
+                                    <p style="font-size: 0.75rem; color: var(--gray-600);">${o.notes}</p>
+                                </div>
+                                <span class="badge" style="background: ${o.is_significant ? '#fef3c7' : '#dcfce7'};">
+                                    ${o.duration_days} days
+                                </span>
+                            </div>
+                        `).join('')}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                            <p>No significant overlaps detected</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading overlap analysis:', error);
+            }
+        }
 
         // Timeline Functions
         async function loadTimeline() {

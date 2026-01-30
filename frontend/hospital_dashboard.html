@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Dashboard - Medical AI Gateway</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-100);
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f172a 100%);
+            padding: 24px 16px;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            padding: 0 12px;
+            margin-bottom: 40px;
+        }
+
+        .sidebar-brand svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        .sidebar-brand h1 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .sidebar-brand span {
+            font-size: 11px;
+            opacity: 0.7;
+            display: block;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .nav-item .badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: white;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--gray-100);
+            padding: 10px 16px;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        .search-box svg {
+            width: 18px;
+            height: 18px;
+            color: var(--gray-400);
+        }
+
+        .search-box input {
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--gray-600);
+        }
+
+        .notification-btn:hover {
+            background: var(--gray-100);
+        }
+
+        .notification-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 10px;
+        }
+
+        .user-menu:hover {
+            background: var(--gray-100);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 32px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon.blue { background: #dbeafe; color: var(--primary-light); }
+        .stat-icon.green { background: #d1fae5; color: var(--success); }
+        .stat-icon.orange { background: #fef3c7; color: var(--warning); }
+        .stat-icon.red { background: #fee2e2; color: var(--danger); }
+
+        .stat-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .stat-change.positive { background: #d1fae5; color: #059669; }
+        .stat-change.negative { background: #fee2e2; color: #dc2626; }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .card-action {
+            font-size: 13px;
+            color: var(--primary-light);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .card-action:hover {
+            text-decoration: underline;
+        }
+
+        /* Quick Scan */
+        .quick-scan {
+            margin-bottom: 24px;
+        }
+
+        .scan-dropzone {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .scan-dropzone:hover {
+            border-color: var(--primary-light);
+            background: #f0f9ff;
+        }
+
+        .scan-dropzone.dragover {
+            border-color: var(--primary-light);
+            background: #dbeafe;
+        }
+
+        .scan-dropzone svg {
+            width: 48px;
+            height: 48px;
+            color: var(--gray-400);
+            margin-bottom: 16px;
+        }
+
+        .scan-dropzone h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .scan-dropzone p {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .scan-dropzone input {
+            display: none;
+        }
+
+        /* Recent Prescriptions */
+        .prescription-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .prescription-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .prescription-item:hover {
+            background: var(--gray-100);
+        }
+
+        .prescription-avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .prescription-info {
+            flex: 1;
+        }
+
+        .prescription-patient {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .prescription-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .prescription-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pending { background: #fef3c7; color: #b45309; }
+        .status-verified { background: #d1fae5; color: #059669; }
+        .status-alert { background: #fee2e2; color: #dc2626; }
+
+        /* Alerts */
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 10px;
+            background: #fef2f2;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-item.warning {
+            background: #fffbeb;
+            border-left-color: var(--warning);
+        }
+
+        .alert-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        .alert-item .alert-icon svg {
+            width: 18px;
+            height: 18px;
+            color: var(--danger);
+        }
+
+        .alert-item.warning .alert-icon svg {
+            color: var(--warning);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .alert-desc {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .alert-time {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        /* Patient Search Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .modal-close:hover {
+            background: var(--gray-100);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        .spinner-large {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 400;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .toast svg {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toast.success svg { color: var(--success); }
+        .toast.error svg { color: var(--danger); }
+        .toast.warning svg { color: var(--warning); }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .toast-message {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-top: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Page Sections (for SPA navigation) */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <div>
+                <h1>MedAI Gateway</h1>
+                <span>Hospital Edition</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a class="nav-item active" data-page="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a class="nav-item" data-page="patients">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Patients
+                </a>
+                <a class="nav-item" data-page="prescriptions">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Prescriptions
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Actions</div>
+                <a class="nav-item" data-page="scan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    Scan Prescription
+                </a>
+                <a class="nav-item" data-page="alerts">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Safety Alerts
+                    <span class="badge" id="alertBadge">0</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Drug Tools</div>
+                <a class="nav-item" data-page="drug-normalize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/>
+                        <path d="M3 21h18"/>
+                        <path d="M9 8h1"/>
+                        <path d="M9 12h1"/>
+                        <path d="M9 16h1"/>
+                    </svg>
+                    Drug Normalization
+                </a>
+                <a class="nav-item" data-page="safety-analysis">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Safety Analysis
+                </a>
+                <a class="nav-item" data-page="allergy-checker">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                    Allergy Checker
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Temporal</div>
+                <a class="nav-item" data-page="timeline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="20" x2="12" y2="10"/>
+                        <line x1="18" y1="20" x2="18" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="16"/>
+                    </svg>
+                    Medication Timeline
+                </a>
+                <a class="nav-item" data-page="changes">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    Medication Changes
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Reports</div>
+                <a class="nav-item" data-page="analytics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    Analytics
+                </a>
+                <a class="nav-item" data-page="audit" id="auditNav" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    Audit Trail
+                </a>
+            </div>
+
+            <div class="nav-section" style="margin-top: auto;">
+                <a class="nav-item" id="logoutBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign Out
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" placeholder="Search patients, prescriptions..." id="globalSearch">
+                </div>
+            </div>
+            <div class="top-bar-right">
+                <button class="notification-btn" id="notificationBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;"></span>
+                </button>
+                <div class="user-menu" id="userMenu">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Admin User</div>
+                        <div class="user-role" id="userRole">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Dashboard Page -->
+            <section class="page-section active" id="page-dashboard">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <span class="stat-change positive">+12%</span>
+                        </div>
+                        <div class="stat-value" id="statPatients">0</div>
+                        <div class="stat-label">Total Patients</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon green">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                            </div>
+                            <span class="stat-change positive">+8%</span>
+                        </div>
+                        <div class="stat-value" id="statPrescriptions">0</div>
+                        <div class="stat-label">Prescriptions Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon orange">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statPending">0</div>
+                        <div class="stat-label">Pending Verification</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon red">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statAlerts">0</div>
+                        <div class="stat-label">Active Alerts</div>
+                    </div>
+                </div>
+
+                <!-- Main Grid -->
+                <div class="main-grid">
+                    <!-- Left Column -->
+                    <div>
+                        <!-- Quick Scan -->
+                        <div class="card quick-scan">
+                            <div class="card-header">
+                                <h2 class="card-title">Quick Prescription Scan</h2>
+                            </div>
+                            <div class="scan-dropzone" id="scanDropzone">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <h3>Drop prescription image here</h3>
+                                <p>or click to upload (JPG, PNG, PDF)</p>
+                                <input type="file" id="scanFileInput" accept="image/*,.pdf" multiple>
+                            </div>
+                        </div>
+
+                        <!-- Recent Prescriptions -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Recent Prescriptions</h2>
+                                <a class="card-action" data-page="prescriptions">View All</a>
+                            </div>
+                            <div class="prescription-list" id="recentPrescriptions">
+                                <div style="text-align: center; color: var(--gray-500); padding: 20px;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div>
+                        <!-- Safety Alerts -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Safety Alerts</h2>
+                                <a class="card-action" data-page="alerts">View All</a>
+                            </div>
+                            <div class="alert-list" id="recentAlerts">
+                                <div style="text-align: center; color: var(--gray-500); padding: 20px;">
+                                    No active alerts
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Patients Page -->
+            <section class="page-section" id="page-patients">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Patient Registry</h2>
+                        <button class="btn btn-primary" id="addPatientBtn">+ Add Patient</button>
+                    </div>
+                    <div id="patientsList" style="min-height: 200px;">
+                        <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                            Loading patients...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Scan Page -->
+            <section class="page-section" id="page-scan">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Scan New Prescription</h2>
+                    </div>
+                    <div class="scan-dropzone" id="scanPageDropzone" style="margin-bottom: 24px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <h3>Drop prescription images here</h3>
+                        <p>Upload multiple files for batch processing (JPG, PNG, PDF)</p>
+                        <input type="file" id="scanPageFileInput" accept="image/*,.pdf" multiple>
+                    </div>
+                    <div id="scanResults"></div>
+                </div>
+            </section>
+
+            <!-- Alerts Page -->
+            <section class="page-section" id="page-alerts">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Safety Alerts</h2>
+                    </div>
+                    <div id="alertsList" style="min-height: 200px;">
+                        <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                            Loading alerts...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prescriptions Page -->
+            <section class="page-section" id="page-prescriptions">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">All Prescriptions</h2>
+                    </div>
+                    <div id="prescriptionsList" style="min-height: 200px;">
+                        <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                            Loading prescriptions...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Page -->
+            <section class="page-section" id="page-analytics">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="analyticsAccuracy">98.5%</div>
+                        <div class="stat-label">OCR Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon green">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="analyticsAvgTime">2.3s</div>
+                        <div class="stat-label">Avg Processing Time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon orange">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="analyticsInteractions">24</div>
+                        <div class="stat-label">Interactions Detected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon red">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="20" x2="18" y2="10"/>
+                                    <line x1="12" y1="20" x2="12" y2="4"/>
+                                    <line x1="6" y1="20" x2="6" y2="14"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="analyticsTotalScans">1,247</div>
+                        <div class="stat-label">Total Scans</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audit Trail Page -->
+            <section class="page-section" id="page-audit">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Audit Trail</h2>
+                    </div>
+                    <div id="auditList" style="min-height: 200px;">
+                        <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                            Loading audit logs...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Drug Normalization Page -->
+            <section class="page-section" id="page-drug-normalize">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Drug Normalization</h2>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 20px;">Convert brand names to generic names and identify drug classes.</p>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="text" id="drugNormalizeInput" placeholder="Enter drug name (e.g., Lipitor, Tylenol, Advil)" 
+                               style="flex: 1; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px;">
+                        <button class="btn btn-primary" onclick="normalizeDrug()">Normalize</button>
+                    </div>
+                    <div id="drugNormalizeResult"></div>
+                </div>
+            </section>
+
+            <!-- Safety Analysis Page -->
+            <section class="page-section" id="page-safety-analysis">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Drug Safety Analysis</h2>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 20px;">Check for drug interactions and contraindications.</p>
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 500; display: block; margin-bottom: 8px;">Enter medications (one per line):</label>
+                        <textarea id="safetyMedicationsInput" rows="5" placeholder="Aspirin&#10;Warfarin&#10;Ibuprofen"
+                                  style="width: 100%; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="text" id="patientAllergiesInput" placeholder="Patient allergies (comma-separated)" 
+                               style="flex: 1; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px;">
+                        <button class="btn btn-primary" onclick="analyzeSafety()">Analyze Safety</button>
+                    </div>
+                    <div id="safetyAnalysisResult"></div>
+                </div>
+            </section>
+
+            <!-- Allergy Checker Page -->
+            <section class="page-section" id="page-allergy-checker">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Allergy Checker</h2>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 20px;">Check medications against patient allergies.</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <label style="font-weight: 500; display: block; margin-bottom: 8px;">Medications:</label>
+                            <textarea id="allergyMedsInput" rows="4" placeholder="Enter medications (one per line)"
+                                      style="width: 100%; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-weight: 500; display: block; margin-bottom: 8px;">Known Allergies:</label>
+                            <textarea id="knownAllergiesInput" rows="4" placeholder="Enter allergies (one per line)"
+                                      style="width: 100%; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px;"></textarea>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="checkAllergies()">Check Allergies</button>
+                    <div id="allergyCheckResult" style="margin-top: 20px;"></div>
+                </div>
+            </section>
+
+            <!-- Medication Timeline Page -->
+            <section class="page-section" id="page-timeline">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Medication Timeline</h2>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 20px;">View patient medication history over time.</p>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="text" id="timelinePatientInput" placeholder="Enter patient name or ID" 
+                               style="flex: 1; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px;">
+                        <button class="btn btn-primary" onclick="loadTimeline()">Load Timeline</button>
+                    </div>
+                    <div id="timelineResult"></div>
+                </div>
+            </section>
+
+            <!-- Medication Changes Page -->
+            <section class="page-section" id="page-changes">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Medication Changes</h2>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 20px;">Track medication additions, removals, and dosage changes.</p>
+                    <div id="medicationChangesResult">
+                        <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                            Select a patient to view medication changes
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-large"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ============== Authentication ==============
+        const API_BASE = '/api/hospital';
+        let authToken = localStorage.getItem('hospital_token');
+        let currentUser = JSON.parse(localStorage.getItem('hospital_user') || '{}');
+
+        // Check authentication
+        function checkAuth() {
+            if (!authToken) {
+                window.location.href = '/hospital/login';
+                return false;
+            }
+            return true;
+        }
+
+        // Make authenticated request
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Authorization': `Bearer ${authToken}`,
+                ...options.headers
+            };
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers
+            });
+
+            if (response.status === 401) {
+                localStorage.removeItem('hospital_token');
+                localStorage.removeItem('hospital_user');
+                window.location.href = '/hospital/login';
+                return null;
+            }
+
+            return response;
+        }
+
+        // ============== UI Updates ==============
+        function updateUserInfo() {
+            if (currentUser.full_name) {
+                document.getElementById('userName').textContent = currentUser.full_name;
+                document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+                document.getElementById('userAvatar').textContent = currentUser.full_name.charAt(0).toUpperCase();
+            }
+
+            // Show audit nav for admin
+            if (currentUser.role === 'admin') {
+                document.getElementById('auditNav').style.display = 'flex';
+            }
+        }
+
+        // ============== Toast Notifications ==============
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+                error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+            };
+
+            toast.innerHTML = `
+                ${icons[type]}
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ============== Loading ==============
+        function showLoading(text = 'Processing...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        // ============== Navigation ==============
+        function navigateTo(page) {
+            // Update nav
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === page) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Update page
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`page-${page}`).classList.add('active');
+
+            // Update title
+            const titles = {
+                dashboard: 'Dashboard',
+                patients: 'Patients',
+                prescriptions: 'Prescriptions',
+                scan: 'Scan Prescription',
+                alerts: 'Safety Alerts',
+                analytics: 'Analytics',
+                audit: 'Audit Trail',
+                'drug-normalize': 'Drug Normalization',
+                'safety-analysis': 'Safety Analysis',
+                'allergy-checker': 'Allergy Checker',
+                timeline: 'Medication Timeline',
+                changes: 'Medication Changes'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+
+            // Load page data
+            if (page === 'patients') loadPatients();
+            if (page === 'alerts') loadAlerts();
+            if (page === 'audit') loadAuditTrail();
+        }
+
+        // Setup navigation
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+            item.addEventListener('click', () => navigateTo(item.dataset.page));
+        });
+
+        document.querySelectorAll('.card-action[data-page]').forEach(item => {
+            item.addEventListener('click', () => navigateTo(item.dataset.page));
+        });
+
+        // ============== Dashboard Stats ==============
+        async function loadDashboardStats() {
+            try {
+                const response = await apiRequest('/dashboard/stats');
+                if (response && response.ok) {
+                    const data = await response.json();
+                    document.getElementById('statPatients').textContent = data.total_patients || 0;
+                    document.getElementById('statPrescriptions').textContent = data.prescriptions_today || 0;
+                    document.getElementById('statPending').textContent = data.pending_verification || 0;
+                    document.getElementById('statAlerts').textContent = data.active_alerts || 0;
+                    
+                    // Update alert badge
+                    const alertBadge = document.getElementById('alertBadge');
+                    alertBadge.textContent = data.active_alerts || 0;
+                    if (data.active_alerts > 0) {
+                        document.getElementById('notificationBadge').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard stats:', error);
+            }
+        }
+
+        // ============== Patients ==============
+        async function loadPatients() {
+            try {
+                const response = await apiRequest('/patients');
+                if (response && response.ok) {
+                    const patients = await response.json();
+                    renderPatients(patients);
+                }
+            } catch (error) {
+                console.error('Failed to load patients:', error);
+            }
+        }
+
+        function renderPatients(patients) {
+            const container = document.getElementById('patientsList');
+            
+            if (!patients || patients.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                        No patients registered yet. Scan a prescription to add the first patient.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = patients.map(patient => `
+                <div class="prescription-item" onclick="viewPatient('${patient.uid}')">
+                    <div class="prescription-avatar">${(patient.name || 'P').charAt(0)}</div>
+                    <div class="prescription-info">
+                        <div class="prescription-patient">${patient.name || 'Unknown'}</div>
+                        <div class="prescription-meta">UID: ${patient.uid} | ${patient.gender || 'N/A'} | ${patient.age ? patient.age + ' years' : 'Age unknown'}</div>
+                    </div>
+                    <span class="prescription-status ${patient.active_alerts > 0 ? 'status-alert' : 'status-verified'}">
+                        ${patient.active_alerts > 0 ? patient.active_alerts + ' Alerts' : 'Active'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        async function viewPatient(uid) {
+            showLoading('Loading patient details...');
+            try {
+                const response = await apiRequest(`/patients/${uid}`);
+                if (response && response.ok) {
+                    const patient = await response.json();
+                    // For now, just show toast - can expand to full detail view
+                    showToast('success', 'Patient Loaded', `${patient.name} - ${patient.prescriptions_count || 0} prescriptions`);
+                }
+            } catch (error) {
+                showToast('error', 'Error', 'Failed to load patient details');
+            }
+            hideLoading();
+        }
+
+        // ============== Alerts ==============
+        async function loadAlerts() {
+            try {
+                const response = await apiRequest('/alerts');
+                if (response && response.ok) {
+                    const alerts = await response.json();
+                    renderAlerts(alerts);
+                }
+            } catch (error) {
+                console.error('Failed to load alerts:', error);
+            }
+        }
+
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertsList');
+            const recentContainer = document.getElementById('recentAlerts');
+            
+            if (!alerts || alerts.length === 0) {
+                const emptyMsg = `
+                    <div style="text-align: center; color: var(--gray-500); padding: 20px;">
+                        No active safety alerts
+                    </div>
+                `;
+                container.innerHTML = emptyMsg;
+                recentContainer.innerHTML = emptyMsg;
+                return;
+            }
+
+            const renderAlert = (alert) => `
+                <div class="alert-item ${alert.severity === 'warning' ? 'warning' : ''}">
+                    <div class="alert-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.alert_type || 'Safety Alert'}</div>
+                        <div class="alert-desc">${alert.description}</div>
+                        <div class="alert-time">${new Date(alert.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = alerts.map(renderAlert).join('');
+            recentContainer.innerHTML = alerts.slice(0, 3).map(renderAlert).join('');
+        }
+
+        // ============== Audit Trail ==============
+        async function loadAuditTrail() {
+            try {
+                const response = await apiRequest('/audit-trail');
+                if (response && response.ok) {
+                    const logs = await response.json();
+                    renderAuditTrail(logs);
+                }
+            } catch (error) {
+                console.error('Failed to load audit trail:', error);
+            }
+        }
+
+        function renderAuditTrail(logs) {
+            const container = document.getElementById('auditList');
+            
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                        No audit logs available
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--gray-100);">
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--gray-600);">Timestamp</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--gray-600);">User</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--gray-600);">Action</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--gray-600);">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => `
+                            <tr style="border-bottom: 1px solid var(--gray-200);">
+                                <td style="padding: 12px; font-size: 13px;">${new Date(log.timestamp).toLocaleString()}</td>
+                                <td style="padding: 12px; font-size: 13px;">${log.username || 'System'}</td>
+                                <td style="padding: 12px; font-size: 13px;"><code style="background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">${log.action}</code></td>
+                                <td style="padding: 12px; font-size: 13px; color: var(--gray-600);">${log.details || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // ============== File Upload & Scan ==============
+        function setupDropzone(dropzoneId, inputId) {
+            const dropzone = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+
+            dropzone.addEventListener('click', () => input.click());
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            input.addEventListener('change', () => {
+                handleFiles(input.files);
+                input.value = '';
+            });
+        }
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+
+            showLoading('Processing prescription with AI...');
+
+            try {
+                // Process each file individually using the documents upload API
+                const results = [];
+                
+                for (let file of files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    // Use the documents upload API (works without patient context)
+                    const response = await fetch('/api/documents/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        results.push(result);
+                    } else {
+                        const error = await response.json().catch(() => ({ detail: 'Failed to process' }));
+                        showToast('error', 'Scan Failed', error.detail || 'Failed to process prescription');
+                    }
+                }
+
+                if (results.length > 0) {
+                    showToast('success', 'Scan Complete', `Processed ${results.length} prescription(s)`);
+                    
+                    // Reload dashboard data
+                    loadDashboardStats();
+                    
+                    // Show results
+                    displayScanResults(results);
+                    
+                    // Navigate to scan page to show results
+                    navigateTo('scan');
+                }
+            } catch (error) {
+                console.error('Scan error:', error);
+                showToast('error', 'Error', 'Failed to process prescription: ' + error.message);
+            }
+
+            hideLoading();
+        }
+
+        function displayScanResults(results) {
+            const container = document.getElementById('scanResults');
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--gray-500);">No results to display</p>';
+                return;
+            }
+            
+            container.innerHTML = results.map((result, index) => {
+                const patient = result.patient_info || result.patient || {};
+                const medications = result.medications || [];
+                const safety = result.drug_safety_analysis || result.safety_analysis || {};
+                const ocr = result.ocr_result || {};
+                
+                return `
+                <div class="card" style="margin-bottom: 16px; padding: 20px;">
+                    <h3 style="margin-bottom: 16px; color: var(--primary);">
+                        <svg style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Prescription #${index + 1}
+                    </h3>
+                    
+                    <!-- Patient Info -->
+                    <div style="background: var(--gray-50); padding: 16px; border-radius: 10px; margin-bottom: 16px;">
+                        <h4 style="margin-bottom: 10px; font-size: 14px; color: var(--gray-600);">Patient Information</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <div><strong>Name:</strong> ${patient.name || 'Not detected'}</div>
+                            <div><strong>Age:</strong> ${patient.age || 'N/A'}</div>
+                            <div><strong>Gender:</strong> ${patient.gender || 'N/A'}</div>
+                            <div><strong>Date:</strong> ${patient.date || new Date().toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Medications -->
+                    <div style="margin-bottom: 16px;">
+                        <h4 style="margin-bottom: 10px; font-size: 14px; color: var(--gray-600);">Medications (${medications.length})</h4>
+                        ${medications.length > 0 ? medications.map(med => `
+                            <div style="background: white; border: 1px solid var(--gray-200); padding: 12px; border-radius: 8px; margin-bottom: 8px;">
+                                <div style="font-weight: 600; color: var(--gray-800);">${med.name || med.medication_name || 'Unknown'}</div>
+                                <div style="font-size: 13px; color: var(--gray-600); margin-top: 4px;">
+                                    ${med.dosage || ''} ${med.frequency || ''} ${med.duration || ''}
+                                </div>
+                                ${med.generic_name ? `<div style="font-size: 12px; color: var(--primary); margin-top: 4px;">Generic: ${med.generic_name}</div>` : ''}
+                            </div>
+                        `).join('') : '<p style="color: var(--gray-500);">No medications detected</p>'}
+                    </div>
+                    
+                    <!-- Safety Alerts -->
+                    ${safety.alerts && safety.alerts.length > 0 ? `
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 10px; margin-bottom: 16px;">
+                            <h4 style="margin-bottom: 10px; font-size: 14px; color: var(--danger);">⚠️ Safety Alerts</h4>
+                            ${safety.alerts.map(alert => `
+                                <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid var(--danger);">
+                                    <div style="font-weight: 500;">${alert.type || 'Alert'}</div>
+                                    <div style="font-size: 13px; color: var(--gray-600);">${alert.message || alert.description || ''}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div style="background: #dcfce7; border: 1px solid #bbf7d0; padding: 12px; border-radius: 10px; margin-bottom: 16px;">
+                            <span style="color: var(--success);">✓ No safety concerns detected</span>
+                        </div>
+                    `}
+                    
+                    <!-- OCR Confidence -->
+                    ${ocr.confidence ? `
+                        <div style="font-size: 12px; color: var(--gray-500);">
+                            OCR Confidence: ${(ocr.confidence * 100).toFixed(1)}%
+                        </div>
+                    ` : ''}
+                </div>
+            `}).join('');
+        }
+
+        // ============== Drug Normalization ==============
+        async function normalizeDrug() {
+            const drugName = document.getElementById('drugNormalizeInput').value.trim();
+            if (!drugName) {
+                showToast('warning', 'Input Required', 'Please enter a drug name');
+                return;
+            }
+
+            const resultDiv = document.getElementById('drugNormalizeResult');
+            resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch('/api/v2/drugs/normalize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ drug_name: drugName })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<div style="color: var(--danger); padding: 16px; background: #fee2e2; border-radius: 10px;">${data.error}</div>`;
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div style="background: var(--gray-50); padding: 20px; border-radius: 12px;">
+                        <div style="display: grid; gap: 16px;">
+                            <div style="display: flex; justify-content: space-between; padding: 12px; background: white; border-radius: 8px;">
+                                <span style="color: var(--gray-600);">Original Name</span>
+                                <span style="font-weight: 600;">${data.original_name || drugName}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 12px; background: white; border-radius: 8px;">
+                                <span style="color: var(--gray-600);">Generic Name</span>
+                                <span style="font-weight: 600; color: var(--primary);">${data.generic_name || 'Not found'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 12px; background: white; border-radius: 8px;">
+                                <span style="color: var(--gray-600);">Drug Class</span>
+                                <span style="font-weight: 600;">${data.drug_class || 'Unknown'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 12px; background: white; border-radius: 8px;">
+                                <span style="color: var(--gray-600);">Confidence</span>
+                                <span style="font-weight: 600;">${data.confidence ? (data.confidence * 100).toFixed(0) + '%' : 'N/A'}</span>
+                            </div>
+                            ${data.brand_names && data.brand_names.length > 0 ? `
+                                <div style="padding: 12px; background: white; border-radius: 8px;">
+                                    <span style="color: var(--gray-600); display: block; margin-bottom: 8px;">Brand Names</span>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        ${data.brand_names.map(alt => `<span style="background: var(--gray-100); padding: 4px 10px; border-radius: 20px; font-size: 13px;">${alt}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${data.common_dosages && data.common_dosages.length > 0 ? `
+                                <div style="padding: 12px; background: white; border-radius: 8px;">
+                                    <span style="color: var(--gray-600); display: block; margin-bottom: 8px;">Common Dosages</span>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        ${data.common_dosages.map(dose => `<span style="background: #dbeafe; color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 13px;">${dose}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                showToast('success', 'Normalized', `Successfully normalized ${drugName}`);
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: var(--danger); padding: 16px; background: #fee2e2; border-radius: 10px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // ============== Safety Analysis ==============
+        async function analyzeSafety() {
+            const medicationsText = document.getElementById('safetyMedicationsInput').value.trim();
+            const allergies = document.getElementById('patientAllergiesInput').value.trim();
+            
+            if (!medicationsText) {
+                showToast('warning', 'Input Required', 'Please enter at least one medication');
+                return;
+            }
+
+            const medications = medicationsText.split('\n').filter(m => m.trim());
+            const resultDiv = document.getElementById('safetyAnalysisResult');
+            resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch('/api/v2/drugs/safety/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ 
+                        medications: medications,
+                        patient_allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
+                        patient_conditions: []
+                    })
+                });
+
+                const data = await response.json();
+                
+                const hasInteractions = data.interactions && data.interactions.length > 0;
+                const hasAllergyAlerts = data.allergy_alerts && data.allergy_alerts.length > 0;
+                const hasDuplicates = data.duplicate_therapies && data.duplicate_therapies.length > 0;
+
+                resultDiv.innerHTML = `
+                    <div style="display: grid; gap: 16px;">
+                        <!-- Safety Status -->
+                        <div style="padding: 16px; border-radius: 12px; ${hasInteractions || hasAllergyAlerts ? 'background: #fef2f2; border: 1px solid #fecaca;' : 'background: #dcfce7; border: 1px solid #bbf7d0;'}">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                ${hasInteractions || hasAllergyAlerts ? 
+                                    '<span style="font-size: 24px;">⚠️</span><span style="font-weight: 600; color: var(--danger);">Safety concerns detected</span>' :
+                                    '<span style="font-size: 24px;">✅</span><span style="font-weight: 600; color: var(--success);">No major safety concerns</span>'
+                                }
+                            </div>
+                            ${data.overall_risk_level ? `<div style="margin-top: 8px; font-size: 13px; color: var(--gray-600);">Overall Risk Level: <strong>${data.overall_risk_level}</strong></div>` : ''}
+                        </div>
+
+                        <!-- Drug Interactions -->
+                        ${hasInteractions ? `
+                            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                                <h4 style="margin-bottom: 12px; color: var(--danger);">🔴 Drug Interactions (${data.interactions.length})</h4>
+                                ${data.interactions.map(int => `
+                                    <div style="padding: 12px; background: #fef2f2; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${int.severity === 'major' || int.severity === 'contraindicated' ? 'var(--danger)' : 'var(--warning)'};">
+                                        <div style="font-weight: 600;">${int.drug1} + ${int.drug2}</div>
+                                        <div style="font-size: 12px; margin-top: 4px;"><span style="background: ${int.severity === 'major' ? '#fee2e2' : int.severity === 'contraindicated' ? '#fecaca' : '#fef3c7'}; padding: 2px 8px; border-radius: 10px; text-transform: uppercase;">${int.severity}</span></div>
+                                        <div style="font-size: 13px; color: var(--gray-600); margin-top: 8px;">${int.description || ''}</div>
+                                        ${int.management ? `<div style="font-size: 12px; color: var(--primary); margin-top: 4px;"><strong>Management:</strong> ${int.management}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <!-- Allergy Alerts -->
+                        ${hasAllergyAlerts ? `
+                            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                                <h4 style="margin-bottom: 12px; color: var(--warning);">🟡 Allergy Alerts (${data.allergy_alerts.length})</h4>
+                                ${data.allergy_alerts.map(alert => `
+                                    <div style="padding: 12px; background: #fffbeb; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--warning);">
+                                        <div style="font-weight: 600;">${alert.medication || alert.drug || 'Alert'} ↔ ${alert.allergen || alert.allergy || ''}</div>
+                                        <div style="font-size: 13px; color: var(--gray-600); margin-top: 4px;">${alert.risk_description || alert.message || ''}</div>
+                                        ${alert.cross_reactivity ? `<div style="font-size: 12px; color: var(--danger); margin-top: 4px;">⚠️ Cross-reactivity risk</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <!-- Duplicate Therapies -->
+                        ${hasDuplicates ? `
+                            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                                <h4 style="margin-bottom: 12px; color: var(--gray-700);">📋 Duplicate Therapies</h4>
+                                ${data.duplicate_therapies.map(dup => `
+                                    <div style="padding: 12px; background: var(--gray-50); border-radius: 8px; margin-bottom: 8px;">
+                                        <div style="font-weight: 600;">${dup.drugs ? dup.drugs.join(', ') : dup.generic_name || 'Duplicate'}</div>
+                                        <div style="font-size: 13px; color: var(--gray-600); margin-top: 4px;">${dup.reason || dup.class || ''}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <!-- Analyzed Medications -->
+                        <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                            <h4 style="margin-bottom: 12px; color: var(--gray-700);">📝 Analyzed Medications</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                ${medications.map(med => `<span style="background: var(--gray-100); padding: 6px 12px; border-radius: 20px; font-size: 13px;">${med}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                showToast('success', 'Analysis Complete', `Analyzed ${medications.length} medications`);
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: var(--danger); padding: 16px; background: #fee2e2; border-radius: 10px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // ============== Allergy Checker ==============
+        async function checkAllergies() {
+            const medsText = document.getElementById('allergyMedsInput').value.trim();
+            const allergiesText = document.getElementById('knownAllergiesInput').value.trim();
+            
+            if (!medsText || !allergiesText) {
+                showToast('warning', 'Input Required', 'Please enter both medications and allergies');
+                return;
+            }
+
+            const medications = medsText.split('\n').filter(m => m.trim());
+            const allergies = allergiesText.split('\n').filter(a => a.trim());
+            const resultDiv = document.getElementById('allergyCheckResult');
+            resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch('/api/v2/drugs/allergies/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ medications, allergies })
+                });
+
+                const data = await response.json();
+                const hasAlerts = data.allergy_alerts && data.allergy_alerts.length > 0;
+
+                resultDiv.innerHTML = `
+                    <div style="display: grid; gap: 16px;">
+                        <!-- Status -->
+                        <div style="padding: 16px; border-radius: 12px; ${hasAlerts ? 'background: #fef2f2; border: 1px solid #fecaca;' : 'background: #dcfce7; border: 1px solid #bbf7d0;'}">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                ${hasAlerts ? 
+                                    `<span style="font-size: 24px;">🚨</span><span style="font-weight: 600; color: var(--danger);">${data.allergy_alerts.length} Allergy Alert(s) Found!</span>` :
+                                    '<span style="font-size: 24px;">✅</span><span style="font-weight: 600; color: var(--success);">No allergy conflicts detected</span>'
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Alerts -->
+                        ${hasAlerts ? `
+                            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                                <h4 style="margin-bottom: 12px; color: var(--danger);">⚠️ Allergy Alerts</h4>
+                                ${data.allergy_alerts.map(alert => `
+                                    <div style="padding: 12px; background: #fef2f2; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--danger);">
+                                        <div style="font-weight: 600;">${alert.medication || 'Medication'} ↔ ${alert.allergen || alert.allergy || 'Allergy'}</div>
+                                        <div style="font-size: 13px; color: var(--gray-600); margin-top: 4px;">${alert.risk_description || alert.reason || alert.message || 'Potential allergic reaction'}</div>
+                                        ${alert.cross_reactivity ? `<div style="font-size: 12px; color: var(--danger); margin-top: 4px;">⚠️ Cross-reactivity detected</div>` : ''}
+                                        ${alert.alternatives && alert.alternatives.length > 0 ? `
+                                            <div style="font-size: 12px; color: var(--primary); margin-top: 8px;">
+                                                <strong>Alternatives:</strong> ${alert.alternatives.join(', ')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <!-- Summary -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                                <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--gray-600);">Medications Checked</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    ${medications.map(med => `<span style="background: #dbeafe; color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px;">${med}</span>`).join('')}
+                                </div>
+                            </div>
+                            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px;">
+                                <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--gray-600);">Allergies Checked</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    ${allergies.map(allergy => `<span style="background: #fee2e2; color: var(--danger); padding: 4px 10px; border-radius: 20px; font-size: 12px;">${allergy}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                showToast(hasAlerts ? 'warning' : 'success', 'Check Complete', hasAlerts ? `${data.allergy_alerts.length} conflict(s) found` : 'No conflicts');
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: var(--danger); padding: 16px; background: #fee2e2; border-radius: 10px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // ============== Medication Timeline ==============
+        async function loadTimeline() {
+            const patientInput = document.getElementById('timelinePatientInput').value.trim();
+            if (!patientInput) {
+                showToast('warning', 'Input Required', 'Please enter a patient name or ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('timelineResult');
+            resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch(`/api/patients/${encodeURIComponent(patientInput)}/timeline`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                // Handle both 'events' and 'timeline' response formats
+                const events = data.events || data.timeline || [];
+                
+                if (events.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div style="text-align: center; color: var(--gray-500); padding: 40px;">
+                            <svg style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="20" x2="12" y2="10"/>
+                                <line x1="18" y1="20" x2="18" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="16"/>
+                            </svg>
+                            <p>No timeline data found for this patient</p>
+                            <p style="font-size: 13px; margin-top: 8px;">Try scanning a prescription first to build the timeline.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div style="position: relative; padding-left: 24px;">
+                        <div style="position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--gray-200);"></div>
+                        ${events.map((event, index) => `
+                            <div style="position: relative; padding: 16px; background: white; border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 16px;">
+                                <div style="position: absolute; left: -20px; top: 20px; width: 12px; height: 12px; background: ${event.event_type === 'medication_start' || event.type === 'medication_start' ? 'var(--success)' : event.event_type === 'medication_end' || event.type === 'medication_end' ? 'var(--danger)' : 'var(--primary)'}; border-radius: 50%; border: 2px solid white;"></div>
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <span style="font-weight: 600; color: var(--gray-800);">${event.description || event.medication || event.drug || 'Event'}</span>
+                                    <span style="font-size: 12px; color: var(--gray-500);">${event.event_date || event.date || event.timestamp || ''}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="padding: 4px 10px; border-radius: 20px; font-size: 12px; 
+                                        ${(event.event_type || event.type) === 'medication_start' ? 'background: #d1fae5; color: #059669;' : 
+                                          (event.event_type || event.type) === 'medication_end' ? 'background: #fee2e2; color: #dc2626;' : 
+                                          (event.event_type || event.type) === 'prescription' ? 'background: #dbeafe; color: var(--primary);' :
+                                          'background: var(--gray-100); color: var(--gray-600);'}">
+                                        ${(event.event_type || event.type) === 'medication_start' ? '+ Started' : 
+                                          (event.event_type || event.type) === 'medication_end' ? '- Ended' : 
+                                          (event.event_type || event.type) === 'prescription' ? '📋 Prescription' :
+                                          event.event_type || event.type || 'Event'}
+                                    </span>
+                                    ${event.dosage ? `<span style="font-size: 13px; color: var(--gray-600);">${event.dosage}</span>` : ''}
+                                </div>
+                                ${event.notes || event.details ? `<div style="font-size: 13px; color: var(--gray-500); margin-top: 8px;">${event.notes || event.details}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                showToast('success', 'Timeline Loaded', `${events.length} events found`);
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: var(--danger); padding: 16px; background: #fee2e2; border-radius: 10px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // ============== Logout ==============
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await apiRequest('/auth/logout', { method: 'POST' });
+            } catch (e) {}
+            
+            localStorage.removeItem('hospital_token');
+            localStorage.removeItem('hospital_user');
+            window.location.href = '/hospital/login';
+        });
+
+        // ============== Initialize ==============
+        if (checkAuth()) {
+            updateUserInfo();
+            loadDashboardStats();
+            setupDropzone('scanDropzone', 'scanFileInput');
+            setupDropzone('scanPageDropzone', 'scanPageFileInput');
+        }
+    </script>
+</body>
+</html>

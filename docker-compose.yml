@@ -1,0 +1,94 @@
+# Medical AI Gateway 2.0 - Hospital Production Stack
+# Docker Compose Configuration
+
+version: '3.8'
+
+services:
+  # Main Application
+  app:
+    build: .
+    container_name: medai-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://medai:${DB_PASSWORD:-medai_secure_password}@postgres:5432/medical_ai
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-this-in-production}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account.json
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./credentials:/app/credentials:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - medai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: medai-postgres
+    environment:
+      - POSTGRES_USER=medai
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-medai_secure_password}
+      - POSTGRES_DB=medical_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - medai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medai -d medical_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: medai-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@hospital.local}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - medai-network
+    profiles:
+      - admin
+
+  # Optional: Redis for caching (future enhancement)
+  redis:
+    image: redis:7-alpine
+    container_name: medai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - medai-network
+    profiles:
+      - cache
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  medai-network:
+    driver: bridge
