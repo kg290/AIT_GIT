@@ -17,13 +17,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 from backend.config import settings
 from backend.database import init_db
 from backend.api import documents, patients, query, analytics
 from backend.api.enhanced_routes import router as enhanced_router
 from backend.api.patient_prescriptions import router as patient_prescriptions_router
+from backend.api.staff_api import router as staff_router
 
 # Production imports
 from backend.api.production_routes import router as hospital_router
@@ -76,6 +77,7 @@ app.include_router(query.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(enhanced_router)  # Enhanced API v2 routes
 app.include_router(patient_prescriptions_router)  # Automated patient prescription routes
+app.include_router(staff_router)  # Staff portal API routes
 app.include_router(hospital_router)  # Production hospital routes with authentication
 
 # Ensure directories exist
@@ -104,6 +106,7 @@ async def startup_event():
     
     logger.info(f"Upload directory: {settings.UPLOAD_DIR}")
     logger.info(f"API documentation available at /api/docs")
+    logger.info(f"Staff Portal: /staff")
     logger.info(f"Hospital Portal: /hospital/login")
     logger.info(f"Default admin credentials - Username: admin, Password: admin123")
 
@@ -194,20 +197,23 @@ async def simple_scanner():
 
 @app.get("/hospital/login", response_class=HTMLResponse)
 async def hospital_login():
-    """Serve the hospital login page"""
-    login_path = Path(__file__).parent / "frontend" / "hospital_login.html"
-    if login_path.exists():
-        return FileResponse(login_path)
-    return HTMLResponse(content="<h1>Login page not found</h1>")
+    """Redirect hospital login to main dashboard"""
+    return RedirectResponse(url="/dashboard")
 
 
 @app.get("/hospital/dashboard", response_class=HTMLResponse)
 async def hospital_dashboard():
-    """Serve the hospital dashboard"""
-    dashboard_path = Path(__file__).parent / "frontend" / "hospital_dashboard.html"
-    if dashboard_path.exists():
-        return FileResponse(dashboard_path)
-    return HTMLResponse(content="<h1>Dashboard not found</h1>")
+    """Redirect hospital dashboard to main dashboard"""
+    return RedirectResponse(url="/dashboard")
+
+
+@app.get("/staff", response_class=HTMLResponse)
+async def staff_portal():
+    """Serve the staff portal for prescription OCR scanning"""
+    staff_path = Path(__file__).parent / "frontend" / "staff.html"
+    if staff_path.exists():
+        return FileResponse(staff_path)
+    return RedirectResponse(url="/dashboard")
 
 
 if __name__ == "__main__":

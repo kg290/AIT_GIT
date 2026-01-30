@@ -1357,3 +1357,253 @@ async def verify_document_integrity(
     service = ComplianceService(db)
     result = service.verify_document_integrity(document_id, version)
     return result
+
+
+# ==================== AI Medical Assistant Endpoints ====================
+
+class AIQueryInput(BaseModel):
+    """Input model for AI Assistant queries"""
+    query: str
+    patient_id: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+
+
+class AIPatientDataInput(BaseModel):
+    """Input model for setting patient data"""
+    patient_id: str
+    name: Optional[str] = None
+    age: Optional[str] = None
+    gender: Optional[str] = None
+    medications: Optional[List[Dict[str, Any]]] = []
+    allergies: Optional[List[str]] = []
+    conditions: Optional[List[str]] = []
+
+
+class AIMedicationInput(BaseModel):
+    """Input model for adding medication"""
+    patient_id: str
+    name: str
+    dosage: str = ""
+    frequency: str = ""
+    prescribed_date: str = None
+    prescriber: str = ""
+
+
+class AIAllergyInput(BaseModel):
+    """Input model for adding allergy"""
+    patient_id: str
+    allergy: str
+
+
+# AI Assistant singleton
+_ai_assistant = None
+
+
+def get_ai_assistant():
+    """Get or create AI Assistant singleton"""
+    global _ai_assistant
+    if _ai_assistant is None:
+        from backend.services.medical_ai_assistant import MedicalAIAssistant
+        _ai_assistant = MedicalAIAssistant()
+    return _ai_assistant
+
+
+@router.post("/ai/query", tags=["AI Medical Assistant"])
+async def ai_assistant_query(input_data: AIQueryInput):
+    """
+    🤖 AI Medical Assistant - Natural Language Query
+    
+    Ask the AI assistant any medical question about patients, medications, interactions, etc.
+    
+    **Example queries:**
+    - "What medications is the patient taking?"
+    - "What are the patient's allergies?"
+    - "Check for drug interactions"
+    - "Is Aspirin safe with Warfarin?"
+    - "Run comprehensive safety analysis"
+    - "What is the generic for Lipitor?"
+    - "Show medication timeline"
+    
+    The AI will automatically:
+    - Detect your intent
+    - Check for drug interactions
+    - Verify allergies
+    - Normalize drug names
+    - Provide recommendations
+    """
+    assistant = get_ai_assistant()
+    
+    response = await assistant.process_query(
+        query=input_data.query,
+        patient_id=input_data.patient_id,
+        context=input_data.context
+    )
+    
+    return {
+        "success": response.success,
+        "query_type": response.query_type,
+        "answer": response.answer,
+        "data": response.data,
+        "recommendations": response.recommendations,
+        "warnings": response.warnings,
+        "confidence": response.confidence,
+        "sources": response.sources,
+        "follow_up_questions": response.follow_up_questions,
+        "processing_time_ms": response.processing_time_ms
+    }
+
+
+@router.post("/ai/set-patient", tags=["AI Medical Assistant"])
+async def ai_set_patient_data(input_data: AIPatientDataInput):
+    """
+    Set patient data for AI context
+    
+    Provide patient information that the AI will use for context-aware responses.
+    """
+    assistant = get_ai_assistant()
+    
+    patient_data = {
+        "patient_id": input_data.patient_id,
+        "name": input_data.name,
+        "age": input_data.age,
+        "gender": input_data.gender,
+        "medications": input_data.medications,
+        "allergies": input_data.allergies,
+        "conditions": input_data.conditions
+    }
+    
+    assistant.set_patient_data(input_data.patient_id, patient_data)
+    
+    return {
+        "success": True,
+        "message": f"Patient data set for ID: {input_data.patient_id}",
+        "patient_data": patient_data
+    }
+
+
+@router.post("/ai/add-medication", tags=["AI Medical Assistant"])
+async def ai_add_medication(input_data: AIMedicationInput):
+    """
+    Add a medication to patient's record
+    """
+    assistant = get_ai_assistant()
+    
+    medication = {
+        "name": input_data.name,
+        "dosage": input_data.dosage,
+        "frequency": input_data.frequency,
+        "prescribed_date": input_data.prescribed_date or datetime.now().strftime("%Y-%m-%d"),
+        "prescriber": input_data.prescriber
+    }
+    
+    assistant.add_medication(input_data.patient_id, medication)
+    
+    return {
+        "success": True,
+        "message": f"Medication '{input_data.name}' added for patient {input_data.patient_id}",
+        "medication": medication
+    }
+
+
+@router.post("/ai/add-allergy", tags=["AI Medical Assistant"])
+async def ai_add_allergy(input_data: AIAllergyInput):
+    """
+    Add an allergy to patient's record
+    """
+    assistant = get_ai_assistant()
+    assistant.add_allergy(input_data.patient_id, input_data.allergy)
+    
+    return {
+        "success": True,
+        "message": f"Allergy '{input_data.allergy}' added for patient {input_data.patient_id}"
+    }
+
+
+@router.get("/ai/patient/{patient_id}", tags=["AI Medical Assistant"])
+async def ai_get_patient_data(patient_id: str):
+    """
+    Get patient data stored in AI context
+    """
+    assistant = get_ai_assistant()
+    patient_data = assistant.get_patient_data(patient_id)
+    
+    if not patient_data:
+        return {
+            "success": False,
+            "message": f"No data found for patient ID: {patient_id}"
+        }
+    
+    return {
+        "success": True,
+        "patient_data": patient_data
+    }
+
+
+@router.post("/ai/quick-safety", tags=["AI Medical Assistant"])
+async def ai_quick_safety_check(
+    medications: List[str],
+    allergies: List[str] = [],
+    conditions: List[str] = []
+):
+    """
+    Quick safety analysis without patient context
+    
+    Provide medications, allergies, and conditions for immediate analysis.
+    """
+    assistant = get_ai_assistant()
+    
+    context = {
+        "medications": [{"name": m} for m in medications],
+        "allergies": allergies,
+        "conditions": conditions
+    }
+    
+    response = await assistant.process_query(
+        query="Run comprehensive safety analysis",
+        context=context
+    )
+    
+    return {
+        "success": response.success,
+        "answer": response.answer,
+        "warnings": response.warnings,
+        "recommendations": response.recommendations,
+        "confidence": response.confidence
+    }
+
+
+@router.get("/ai/suggestions", tags=["AI Medical Assistant"])
+async def ai_get_suggestions(patient_id: Optional[str] = None):
+    """
+    Get suggested queries based on patient context
+    """
+    assistant = get_ai_assistant()
+    patient_data = assistant.get_patient_data(patient_id) if patient_id else {}
+    
+    suggestions = [
+        "What medications is the patient taking?",
+        "Check for drug interactions",
+        "Run comprehensive safety analysis"
+    ]
+    
+    if patient_data.get("allergies"):
+        suggestions.insert(1, "What are the patient's allergies?")
+        suggestions.append("Check medications against allergies")
+    
+    if patient_data.get("medications"):
+        med_count = len(patient_data.get("medications", []))
+        if med_count >= 2:
+            suggestions.append("Are there any dangerous interactions?")
+        suggestions.append("What was the last medication prescribed?")
+        suggestions.append("Show medication timeline")
+    
+    suggestions.extend([
+        "What is the generic for Lipitor?",
+        "Find alternatives to Metformin",
+        "Is Aspirin safe with Warfarin?"
+    ])
+    
+    return {
+        "suggestions": suggestions[:10],
+        "patient_has_context": bool(patient_data)
+    }

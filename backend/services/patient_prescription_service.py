@@ -142,10 +142,11 @@ class PatientProfile:
 class PatientPrescriptionService:
     """
     Service for managing patient prescriptions and building automated timelines
+    Now integrated with database for persistent storage
     """
     
     def __init__(self):
-        # In-memory patient store (would be database in production)
+        # In-memory patient store for quick access (also syncs with database)
         self.patients: Dict[str, PatientProfile] = {}
         
         # Import services
@@ -154,6 +155,249 @@ class PatientPrescriptionService:
         
         self.drug_normalizer = DrugNormalizationService()
         self.drug_interaction_service = DrugInteractionService()
+        
+        # Load existing patients from database on startup
+        self._load_from_database()
+    
+    def _load_from_database(self):
+        """Load patients from database into memory"""
+        try:
+            from backend.database.connection import get_db
+            from backend.database.models import Patient, Prescription, PrescriptionMedication, TimelineEvent
+            
+            db = next(get_db())
+            
+            # Load all patients
+            db_patients = db.query(Patient).all()
+            
+            for db_patient in db_patients:
+                # Convert to in-memory format
+                patient = PatientProfile(
+                    patient_id=db_patient.patient_uid,
+                    name=f"{db_patient.first_name} {db_patient.last_name}".strip(),
+                    age=str(db_patient.age) if hasattr(db_patient, 'age') and db_patient.age else None,
+                    gender=db_patient.gender,
+                    phone=db_patient.phone,
+                    address=db_patient.address,
+                    allergies=[a.name for a in db_patient.allergies] if db_patient.allergies else [],
+                    chronic_conditions=[c.name for c in db_patient.conditions] if db_patient.conditions else [],
+                    created_at=db_patient.created_at.isoformat() if db_patient.created_at else "",
+                    updated_at=db_patient.updated_at.isoformat() if db_patient.updated_at else ""
+                )
+                
+                # Load prescriptions
+                for db_presc in db_patient.prescriptions:
+                    meds = []
+                    for med in db_presc.medications:
+                        meds.append({
+                            'name': med.name,
+                            'generic_name': med.generic_name,
+                            'dosage': med.dosage,
+                            'frequency': med.frequency,
+                            'timing': med.timing,
+                            'duration': med.duration,
+                            'instructions': med.instructions
+                        })
+                        
+                        # Add to current medications
+                        med_record = MedicationRecord(
+                            name=med.name,
+                            generic_name=med.generic_name or med.name,
+                            dosage=med.dosage or "",
+                            frequency=med.frequency or "",
+                            duration=med.duration or "",
+                            instructions=med.instructions or "",
+                            start_date=db_presc.prescription_date.isoformat() if db_presc.prescription_date else "",
+                            prescriber=db_presc.doctor_name,
+                            prescription_id=db_presc.prescription_uid,
+                            is_active=True
+                        )
+                        patient.current_medications.append(med_record)
+                    
+                    presc_record = PrescriptionRecord(
+                        prescription_id=db_presc.prescription_uid,
+                        prescription_date=db_presc.prescription_date.isoformat() if db_presc.prescription_date else "",
+                        doctor_name=db_presc.doctor_name or "",
+                        doctor_qualification=db_presc.doctor_qualification or "",
+                        clinic_name=db_presc.clinic_name or "",
+                        diagnosis=db_presc.diagnosis if db_presc.diagnosis else [],
+                        medications=meds,
+                        vitals=db_presc.vitals if db_presc.vitals else {},
+                        advice=db_presc.advice if db_presc.advice else [],
+                        follow_up=str(db_presc.follow_up_date) if db_presc.follow_up_date else "",
+                        raw_ocr_text=db_presc.raw_ocr_text or "",
+                        confidence=db_presc.extraction_confidence or 0.0,
+                        file_name=db_presc.original_filename or "",
+                        processed_at=db_presc.created_at.isoformat() if db_presc.created_at else ""
+                    )
+                    patient.prescriptions.append(presc_record)
+                
+                # Load timeline events
+                for db_event in db_patient.timeline_events:
+                    event = TimelineEvent(
+                        event_id=str(db_event.id),
+                        event_type=db_event.event_type,
+                        event_date=db_event.event_date.isoformat() if db_event.event_date else "",
+                        description=db_event.description,
+                        details=db_event.details if db_event.details else {},
+                        severity=db_event.severity.value if db_event.severity else "info"
+                    )
+                    patient.timeline.append(event)
+                
+                self.patients[db_patient.patient_uid] = patient
+            
+            print(f"✓ Loaded {len(self.patients)} patients from database")
+            
+        except Exception as e:
+            print(f"Warning: Could not load from database: {e}")
+            # Continue with empty in-memory store
+    
+    def _save_patient_to_database(self, patient: PatientProfile):
+        """Save patient profile to database"""
+        try:
+            from backend.database.connection import get_db
+            from backend.database.models import Patient, Allergy, Condition
+            
+            db = next(get_db())
+            
+            # Check if patient exists
+            db_patient = db.query(Patient).filter(Patient.patient_uid == patient.patient_id).first()
+            
+            # Parse name into first/last
+            name_parts = patient.name.split() if patient.name else ["Unknown"]
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+            
+            if not db_patient:
+                # Create new patient
+                db_patient = Patient(
+                    patient_uid=patient.patient_id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    gender=patient.gender,
+                    phone=patient.phone,
+                    address=patient.address
+                )
+                db.add(db_patient)
+            else:
+                # Update existing
+                db_patient.first_name = first_name
+                db_patient.last_name = last_name
+                if patient.gender:
+                    db_patient.gender = patient.gender
+                if patient.phone:
+                    db_patient.phone = patient.phone
+                if patient.address:
+                    db_patient.address = patient.address
+            
+            # Handle allergies
+            for allergy_name in patient.allergies:
+                allergy = db.query(Allergy).filter(Allergy.name == allergy_name).first()
+                if not allergy:
+                    allergy = Allergy(name=allergy_name, category="drug")
+                    db.add(allergy)
+                if allergy not in db_patient.allergies:
+                    db_patient.allergies.append(allergy)
+            
+            # Handle conditions
+            for condition_name in patient.chronic_conditions:
+                condition = db.query(Condition).filter(Condition.name == condition_name).first()
+                if not condition:
+                    condition = Condition(name=condition_name)
+                    db.add(condition)
+                if condition not in db_patient.conditions:
+                    db_patient.conditions.append(condition)
+            
+            db.commit()
+            return db_patient.id
+            
+        except Exception as e:
+            print(f"Warning: Could not save patient to database: {e}")
+            return None
+    
+    def _save_prescription_to_database(self, patient_id: str, prescription: PrescriptionRecord):
+        """Save prescription to database"""
+        try:
+            from backend.database.connection import get_db
+            from backend.database.models import Patient, Prescription, PrescriptionMedication, TimelineEvent as DBTimelineEvent, AlertSeverity
+            from datetime import datetime
+            
+            db = next(get_db())
+            
+            # Get patient
+            db_patient = db.query(Patient).filter(Patient.patient_uid == patient_id).first()
+            if not db_patient:
+                return None
+            
+            # Check if prescription already exists
+            existing = db.query(Prescription).filter(Prescription.prescription_uid == prescription.prescription_id).first()
+            if existing:
+                return existing.id
+            
+            # Parse date
+            presc_date = None
+            try:
+                from dateutil import parser
+                presc_date = parser.parse(prescription.prescription_date, dayfirst=True) if prescription.prescription_date else datetime.utcnow()
+            except:
+                presc_date = datetime.utcnow()
+            
+            # Create prescription
+            db_presc = Prescription(
+                prescription_uid=prescription.prescription_id,
+                patient_id=db_patient.id,
+                prescription_date=presc_date,
+                doctor_name=prescription.doctor_name,
+                doctor_qualification=prescription.doctor_qualification,
+                clinic_name=prescription.clinic_name,
+                diagnosis=prescription.diagnosis,
+                vitals=prescription.vitals,
+                advice=prescription.advice,
+                raw_ocr_text=prescription.raw_ocr_text,
+                extraction_confidence=prescription.confidence,
+                original_filename=prescription.file_name
+            )
+            db.add(db_presc)
+            db.flush()  # Get the ID
+            
+            # Add medications
+            for med in prescription.medications:
+                db_med = PrescriptionMedication(
+                    prescription_id=db_presc.id,
+                    name=med.get('name', ''),
+                    generic_name=med.get('generic_name', ''),
+                    dosage=med.get('dosage', ''),
+                    frequency=med.get('frequency', ''),
+                    timing=med.get('timing', ''),
+                    duration=med.get('duration', ''),
+                    instructions=med.get('instructions', '')
+                )
+                db.add(db_med)
+            
+            # Add timeline event
+            db_event = DBTimelineEvent(
+                patient_id=db_patient.id,
+                prescription_id=db_presc.id,
+                event_type='prescription_added',
+                event_date=presc_date,
+                description=f"New prescription from Dr. {prescription.doctor_name}",
+                details={
+                    'doctor': prescription.doctor_name,
+                    'clinic': prescription.clinic_name,
+                    'medications_count': len(prescription.medications)
+                },
+                severity=AlertSeverity.INFO
+            )
+            db.add(db_event)
+            
+            db.commit()
+            return db_presc.id
+            
+        except Exception as e:
+            print(f"Warning: Could not save prescription to database: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     def get_or_create_patient(self, patient_id: str, name: str = None, **kwargs) -> PatientProfile:
         """Get existing patient or create new one"""
@@ -170,20 +414,31 @@ class PatientPrescriptionService:
                 created_at=datetime.utcnow().isoformat(),
                 updated_at=datetime.utcnow().isoformat()
             )
+            # Save to database
+            self._save_patient_to_database(self.patients[patient_id])
         else:
             # Update with any new info
             patient = self.patients[patient_id]
+            updated = False
             if name and name != patient.name:
                 patient.name = name
+                updated = True
             if kwargs.get('age'):
                 patient.age = kwargs['age']
+                updated = True
             if kwargs.get('gender'):
                 patient.gender = kwargs['gender']
+                updated = True
             if kwargs.get('allergies'):
                 for allergy in kwargs['allergies']:
                     if allergy not in patient.allergies:
                         patient.allergies.append(allergy)
+                        updated = True
             patient.updated_at = datetime.utcnow().isoformat()
+            
+            # Update database if changes made
+            if updated:
+                self._save_patient_to_database(patient)
         
         return self.patients[patient_id]
     
@@ -230,6 +485,9 @@ class PatientPrescriptionService:
         
         # Add prescription to patient
         patient.prescriptions.append(prescription)
+        
+        # Save prescription to database
+        self._save_prescription_to_database(patient_id, prescription)
         
         # Add timeline event for prescription
         self._add_timeline_event(

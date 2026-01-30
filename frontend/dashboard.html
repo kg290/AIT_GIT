@@ -11,10 +11,17 @@
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
             --primary-light: #3b82f6;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --success: #059669;
+            --success-light: #10b981;
             --warning: #d97706;
+            --warning-light: #f59e0b;
             --danger: #dc2626;
+            --danger-light: #ef4444;
             --info: #0891b2;
+            --info-light: #06b6d4;
+            --purple: #7c3aed;
+            --pink: #ec4899;
             --gray-50: #f9fafb;
             --gray-100: #f3f4f6;
             --gray-200: #e5e7eb;
@@ -25,7 +32,51 @@
             --gray-700: #374151;
             --gray-800: #1f2937;
             --gray-900: #111827;
-            --sidebar-width: 260px;
+            --sidebar-width: 280px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(37, 99, 235, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.8); }
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
         }
 
         * {
@@ -36,7 +87,7 @@
 
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--gray-50);
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
             color: var(--gray-900);
             min-height: 100vh;
             display: flex;
@@ -45,7 +96,7 @@
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
-            background: var(--gray-900);
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             color: white;
             height: 100vh;
             position: fixed;
@@ -55,6 +106,8 @@
             display: flex;
             flex-direction: column;
             z-index: 100;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+            animation: slideInLeft 0.5s ease-out;
         }
 
         .logo {
@@ -63,18 +116,20 @@
             gap: 0.75rem;
             margin-bottom: 2rem;
             padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--gray-700);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .logo-icon {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 10px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            animation: pulse 3s ease-in-out infinite;
         }
 
         .logo h1 {
@@ -109,24 +164,48 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            color: var(--gray-400);
+            padding: 0.85rem 1rem;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
             font-size: 0.875rem;
             cursor: pointer;
-            transition: all 0.15s;
-            margin-bottom: 0.25rem;
+            transition: all 0.25s ease;
+            margin-bottom: 0.35rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            transform: scaleY(0);
+            transition: transform 0.25s ease;
         }
 
         .nav-item:hover {
-            background: var(--gray-800);
+            background: rgba(255, 255, 255, 0.08);
             color: white;
+            transform: translateX(5px);
+        }
+
+        .nav-item:hover::before {
+            transform: scaleY(1);
         }
 
         .nav-item.active {
-            background: var(--primary);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .nav-item.active::before {
+            transform: scaleY(1);
         }
 
         .nav-item i {
@@ -151,15 +230,17 @@
         }
 
         .header {
-            background: white;
+            background: linear-gradient(to right, white, rgba(249, 250, 251, 0.95));
             border-bottom: 1px solid var(--gray-200);
-            padding: 1rem 2rem;
+            padding: 1.25rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 50;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .header-left {
@@ -169,8 +250,11 @@
         }
 
         .page-title {
-            font-size: 1.25rem;
-            font-weight: 600;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gray-900), var(--gray-700));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .header-right {
@@ -182,10 +266,18 @@
         .search-box {
             display: flex;
             align-items: center;
-            background: var(--gray-100);
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            width: 300px;
+            background: white;
+            border-radius: 12px;
+            padding: 0.65rem 1.25rem;
+            width: 320px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-box:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
         }
 
         .search-box input {
@@ -201,9 +293,9 @@
         }
 
         .notification-btn, .profile-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             border: 1px solid var(--gray-200);
             background: white;
             display: flex;
@@ -211,16 +303,26 @@
             justify-content: center;
             cursor: pointer;
             position: relative;
+            transition: all 0.25s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .notification-btn:hover, .profile-btn:hover {
+            background: var(--gray-50);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .notification-dot {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
-            background: var(--danger);
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             border-radius: 50%;
+            border: 2px solid white;
+            animation: pulse 2s ease-in-out infinite;
         }
 
         /* Page Content */
@@ -241,15 +343,46 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
         }
 
         .stat-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.25rem;
-            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: none;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.5s ease-out backwards;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--purple));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
         }
 
         .stat-card-header {
@@ -260,19 +393,24 @@
         }
 
         .stat-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            font-size: 1.35rem;
+            transition: transform 0.3s ease;
         }
 
-        .stat-icon.blue { background: #dbeafe; color: var(--primary); }
-        .stat-icon.green { background: #dcfce7; color: var(--success); }
-        .stat-icon.yellow { background: #fef3c7; color: var(--warning); }
-        .stat-icon.red { background: #fee2e2; color: var(--danger); }
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .stat-icon.blue { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: var(--primary); }
+        .stat-icon.green { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: var(--success); }
+        .stat-icon.yellow { background: linear-gradient(135deg, #fef3c7, #fde68a); color: var(--warning); }
+        .stat-icon.red { background: linear-gradient(135deg, #fee2e2, #fecaca); color: var(--danger); }
 
         .stat-value {
             font-size: 1.75rem;
@@ -299,23 +437,38 @@
         /* Cards */
         .card {
             background: white;
-            border-radius: 12px;
-            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            border: none;
             overflow: hidden;
             margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
         }
 
         .card-header {
-            padding: 1rem 1.25rem;
+            padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--gray-100);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(to right, rgba(249, 250, 251, 0.8), white);
         }
 
         .card-title {
-            font-size: 1rem;
+            font-size: 1.05rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title i {
+            color: var(--primary);
         }
 
         .card-body {
@@ -335,35 +488,61 @@
 
         .upload-zone {
             border: 2px dashed var(--gray-300);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 3rem 2rem;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            background: var(--gray-50);
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #fafbfc 0%, #f0f2f5 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .upload-zone:hover::before {
+            left: 100%;
         }
 
         .upload-zone:hover, .upload-zone.dragover {
             border-color: var(--primary);
-            background: #eff6ff;
+            background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
+            transform: scale(1.01);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
         }
 
         .upload-zone.processing {
             pointer-events: none;
             opacity: 0.7;
+            animation: pulse 1.5s ease-in-out infinite;
         }
 
         .upload-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 1rem;
-            background: var(--gray-200);
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.75rem;
-            color: var(--gray-500);
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .upload-zone:hover .upload-icon {
+            transform: scale(1.1) rotate(5deg);
         }
 
         .upload-zone h3 {
@@ -398,57 +577,117 @@
         .form-label {
             display: block;
             font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 0.5rem;
             color: var(--gray-700);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-label i {
+            color: var(--primary);
+            font-size: 0.8rem;
         }
 
         .form-input {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
+            padding: 0.875rem 1.125rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
             font-size: 0.875rem;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-input:hover {
+            border-color: var(--gray-300);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray-400);
         }
 
         .form-select {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
+            padding: 0.875rem 1.125rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
             font-size: 0.875rem;
             background: white;
             cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        .form-select:hover {
+            border-color: var(--gray-300);
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 100px;
         }
 
         /* Buttons */
         .btn {
-            padding: 0.75rem 1.25rem;
-            border-radius: 8px;
+            padding: 0.85rem 1.5rem;
+            border-radius: 10px;
             font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             border: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.15s;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .btn:active::after {
+            width: 200px;
+            height: 200px;
         }
 
         .btn-primary {
-            background: var(--primary);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
         }
 
         .btn-primary:hover {
-            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
         }
 
         .btn-secondary {
@@ -510,10 +749,10 @@
 
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--gray-300);
-            border-top-color: var(--primary);
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -534,38 +773,82 @@
 
         /* Alert Boxes */
         .alert-box {
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 0.75rem;
+            padding: 1.25rem;
+            border-radius: 14px;
+            margin-bottom: 1rem;
             display: flex;
-            gap: 0.75rem;
+            gap: 1rem;
             align-items: flex-start;
+            animation: fadeInUp 0.4s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert-box::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
         }
 
         .alert-box.warning {
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: none;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+        }
+
+        .alert-box.warning::before {
+            background: linear-gradient(180deg, #f59e0b, #d97706);
         }
 
         .alert-box.danger {
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: none;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+        }
+
+        .alert-box.danger::before {
+            background: linear-gradient(180deg, #ef4444, #dc2626);
         }
 
         .alert-box.info {
-            background: #f0f9ff;
-            border: 1px solid #7dd3fc;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: none;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+        }
+
+        .alert-box.info::before {
+            background: linear-gradient(180deg, #0ea5e9, #0284c7);
+        }
+
+        .alert-box.success {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: none;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        }
+
+        .alert-box.success::before {
+            background: linear-gradient(180deg, #22c55e, #16a34a);
         }
 
         .alert-icon {
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.5);
         }
 
         .alert-content h5 {
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
         }
 
         .alert-content p {
@@ -665,48 +948,100 @@
 
         /* Badges */
         .badge {
-            display: inline-block;
-            padding: 0.25rem 0.625rem;
-            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
+            transition: all 0.2s ease;
         }
 
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-danger { background: #fee2e2; color: #991b1b; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
-        .badge-gray { background: var(--gray-200); color: var(--gray-700); }
+        .badge-success { 
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0); 
+            color: #166534;
+            box-shadow: 0 2px 4px rgba(22, 101, 52, 0.1);
+        }
+        .badge-warning { 
+            background: linear-gradient(135deg, #fef3c7, #fde68a); 
+            color: #92400e;
+            box-shadow: 0 2px 4px rgba(146, 64, 14, 0.1);
+        }
+        .badge-danger { 
+            background: linear-gradient(135deg, #fee2e2, #fecaca); 
+            color: #991b1b;
+            box-shadow: 0 2px 4px rgba(153, 27, 27, 0.1);
+        }
+        .badge-info { 
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe); 
+            color: #1e40af;
+            box-shadow: 0 2px 4px rgba(30, 64, 175, 0.1);
+        }
+        .badge-gray { 
+            background: linear-gradient(135deg, var(--gray-200), var(--gray-100)); 
+            color: var(--gray-700);
+        }
+        .badge-purple {
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            color: #5b21b6;
+            box-shadow: 0 2px 4px rgba(91, 33, 182, 0.1);
+        }
 
         /* Confidence Meter */
         .confidence-meter {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border-radius: 12px;
         }
 
         .confidence-bar {
             flex: 1;
-            height: 8px;
+            height: 10px;
             background: var(--gray-200);
-            border-radius: 4px;
+            border-radius: 10px;
             overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .confidence-fill {
             height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s;
+            border-radius: 10px;
+            transition: width 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
         }
 
-        .confidence-fill.high { background: var(--success); }
-        .confidence-fill.medium { background: var(--warning); }
-        .confidence-fill.low { background: var(--danger); }
+        .confidence-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .confidence-fill.high { 
+            background: linear-gradient(90deg, #10b981, #059669); 
+        }
+        .confidence-fill.medium { 
+            background: linear-gradient(90deg, #f59e0b, #d97706); 
+        }
+        .confidence-fill.low { 
+            background: linear-gradient(90deg, #ef4444, #dc2626); 
+        }
 
         .confidence-text {
-            font-size: 0.875rem;
-            font-weight: 600;
-            min-width: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            min-width: 55px;
+            text-align: right;
+            
             text-align: right;
         }
 
@@ -1004,10 +1339,10 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="logo">
-            <div class="logo-icon">🏥</div>
+            <div class="logo-icon">💊</div>
             <div>
-                <h1>Medical AI</h1>
-                <p>Gateway 2.0</p>
+                <h1 style="font-size: 1.2rem; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MedAI Gateway</h1>
+                <p style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 2px;">Hospital Edition v2.0</p>
             </div>
         </div>
 
@@ -1017,10 +1352,6 @@
                 <a class="nav-item active" data-page="dashboard">
                     <i class="fas fa-home"></i>
                     <span>Dashboard</span>
-                </a>
-                <a class="nav-item" data-page="scan">
-                    <i class="fas fa-camera"></i>
-                    <span>Scan Prescription</span>
                 </a>
                 <a class="nav-item" data-page="patients">
                     <i class="fas fa-users"></i>
@@ -1225,11 +1556,8 @@
                             <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-bottom: 0.75rem;" onclick="navigateTo('scan')">
                                 <i class="fas fa-camera"></i> Scan New Prescription
                             </button>
-                            <button class="btn btn-secondary" style="width: 100%; justify-content: center; margin-bottom: 0.75rem;" onclick="openTextInput()">
+                            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="openTextInput()">
                                 <i class="fas fa-keyboard"></i> Manual Text Entry
-                            </button>
-                            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="navigateTo('patients')">
-                                <i class="fas fa-user-plus"></i> Add Patient
                             </button>
                         </div>
                     </div>
@@ -1492,32 +1820,42 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
-                    <!-- Left Panel: Patient List & Selection -->
+                <div style="display: grid; grid-template-columns: 400px 1fr; gap: 1.5rem;">
+                    <!-- Left Panel: QR Scan & Patient Lookup -->
                     <div>
-                        <div class="card">
+                        <!-- Doctor QR Scan Card -->
+                        <div class="card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: white;">
+                            <div class="card-body" style="padding: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                    <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                        📱
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0; font-weight: 600;">Scan Patient QR</h3>
+                                        <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Upload QR code image to view patient</p>
+                                    </div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; border: 2px dashed rgba(255,255,255,0.4); transition: all 0.3s;" id="doctorQrDropZone">
+                                    <i class="fas fa-qrcode" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></i>
+                                    <p style="margin: 0; font-weight: 500;">Drop QR Image Here</p>
+                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; opacity: 0.8;">or click to browse</p>
+                                    <input type="file" id="doctorQrFileInput" accept=".png,.jpg,.jpeg,.bmp,.gif,.webp" style="display: none;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manual UID Entry -->
+                        <div class="card" style="margin-top: 1rem;">
                             <div class="card-header">
-                                <span class="card-title"><i class="fas fa-user-plus"></i> Select / Create Patient</span>
+                                <span class="card-title"><i class="fas fa-keyboard"></i> Manual Lookup</span>
                             </div>
                             <div class="card-body">
-                                <div class="form-group">
-                                    <label class="form-label">Patient ID</label>
-                                    <input type="text" class="form-input" id="patientIdInput" placeholder="Enter patient ID (e.g., P001)">
+                                <div class="form-group" style="margin-bottom: 1rem;">
+                                    <label class="form-label">Patient UID</label>
+                                    <input type="text" class="form-input" id="doctorPatientUidInput" placeholder="e.g., PT20260130-A1B2">
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">Patient Name</label>
-                                    <input type="text" class="form-input" id="patientNameInput" placeholder="Patient full name">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Known Allergies (comma-separated)</label>
-                                    <input type="text" class="form-input" id="patientAllergiesInput" placeholder="e.g., Penicillin, Sulfa">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Chronic Conditions (comma-separated)</label>
-                                    <input type="text" class="form-input" id="patientConditionsInput" placeholder="e.g., diabetes, hypertension">
-                                </div>
-                                <button class="btn btn-primary" style="width: 100%;" onclick="selectPatient()">
-                                    <i class="fas fa-check"></i> Select / Create Patient
+                                <button class="btn btn-primary" style="width: 100%;" onclick="doctorLookupPatient()">
+                                    <i class="fas fa-search"></i> Find Patient
                                 </button>
                             </div>
                         </div>
@@ -1525,7 +1863,7 @@
                         <!-- Existing Patients List -->
                         <div class="card" style="margin-top: 1rem;">
                             <div class="card-header">
-                                <span class="card-title"><i class="fas fa-list"></i> Existing Patients</span>
+                                <span class="card-title"><i class="fas fa-list"></i> Recent Patients</span>
                                 <button class="btn btn-sm" onclick="refreshPatientList()"><i class="fas fa-sync"></i></button>
                             </div>
                             <div class="card-body" style="max-height: 300px; overflow-y: auto; padding: 0;">
@@ -1537,66 +1875,138 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Staff Portal Link -->
+                        <div class="card" style="margin-top: 1rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe);">
+                            <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                                <i class="fas fa-user-plus" style="font-size: 1.5rem; color: #0284c7; margin-bottom: 0.5rem;"></i>
+                                <p style="margin: 0 0 0.75rem 0; color: #0369a1; font-weight: 500;">Need to register a new patient?</p>
+                                <a href="/staff" target="_blank" class="btn" style="background: #0284c7; color: white; width: 100%;">
+                                    <i class="fas fa-external-link-alt"></i> Open Staff Portal
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Right Panel: Upload Prescriptions -->
+                    <!-- Right Panel: Patient Details View -->
                     <div>
-                        <div class="card">
-                            <div class="card-header">
-                                <span class="card-title"><i class="fas fa-cloud-upload-alt"></i> Upload Prescriptions</span>
-                                <span class="badge" id="selectedPatientBadge" style="display: none;">No patient selected</span>
-                            </div>
-                            <div class="card-body">
-                                <div id="noPatientSelectedMsg" class="alert-box info">
-                                    <span class="alert-icon">ℹ️</span>
-                                    <div class="alert-content">
-                                        <h5>Select a Patient First</h5>
-                                        <p>Enter a patient ID on the left to start uploading prescriptions.</p>
-                                    </div>
-                                </div>
-
-                                <div id="prescriptionUploadArea" style="display: none;">
-                                    <div class="upload-zone" id="multiUploadZone" style="border: 2px dashed var(--primary); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s;">
-                                        <i class="fas fa-images" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
-                                        <h4>Drop Prescription Images Here</h4>
-                                        <p style="color: var(--gray-500);">or click to select files (PDF, JPG, PNG)</p>
-                                        <p style="color: var(--gray-400); font-size: 0.8rem; margin-top: 0.5rem;">
-                                            You can upload multiple prescriptions at once
-                                        </p>
-                                        <input type="file" id="multiFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp" style="display: none;">
-                                    </div>
-
-                                    <div id="selectedFilesPreview" style="margin-top: 1rem; display: none;">
-                                        <h5><i class="fas fa-file-alt"></i> Selected Files:</h5>
-                                        <div id="filesListPreview" style="margin-top: 0.5rem;"></div>
-                                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                                            <button class="btn btn-primary" onclick="processAllPrescriptions()" id="processAllBtn">
-                                                <i class="fas fa-play"></i> Process All Prescriptions
-                                            </button>
-                                            <button class="btn" onclick="clearSelectedFiles()">
-                                                <i class="fas fa-times"></i> Clear
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div id="processingStatus" style="margin-top: 1rem; display: none;">
-                                        <div class="status-box show processing">
-                                            <span class="spinner"></span>
-                                            <span id="processingText">Processing prescriptions...</span>
-                                        </div>
-                                        <div id="processingProgress" style="margin-top: 1rem;"></div>
-                                    </div>
+                        <!-- Patient Not Found / Initial State -->
+                        <div id="patientNotFoundState">
+                            <div class="card">
+                                <div class="card-body" style="text-align: center; padding: 4rem 2rem;">
+                                    <i class="fas fa-user-md" style="font-size: 4rem; color: var(--gray-300); margin-bottom: 1rem;"></i>
+                                    <h3 style="color: var(--gray-500); margin-bottom: 0.5rem;">Scan Patient QR Code</h3>
+                                    <p style="color: var(--gray-400);">Upload a patient QR code image or enter their UID to view prescription details</p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Results Summary -->
-                        <div class="card" style="margin-top: 1rem; display: none;" id="uploadResultsCard">
-                            <div class="card-header">
-                                <span class="card-title"><i class="fas fa-check-circle"></i> Processing Complete</span>
+                        <!-- Patient Found - Details View -->
+                        <div id="patientFoundState" style="display: none;">
+                            <!-- Patient Header Card -->
+                            <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
+                                <div class="card-body" style="padding: 1.5rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                        <div style="display: flex; gap: 1rem;">
+                                            <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                                                👤
+                                            </div>
+                                            <div>
+                                                <h2 id="viewPatientName" style="margin: 0; font-size: 1.5rem;">Patient Name</h2>
+                                                <p id="viewPatientUid" style="margin: 0.25rem 0 0 0; opacity: 0.9; font-size: 0.9rem;"></p>
+                                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.9rem;">
+                                                    <span id="viewPatientAge"></span>
+                                                    <span id="viewPatientGender"></span>
+                                                    <span id="viewPatientBlood"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button class="btn" style="background: rgba(255,255,255,0.2); color: white;" onclick="clearPatientView()">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <div id="uploadResultsSummary"></div>
+
+                            <!-- Quick Stats -->
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
+                                <div class="stat-card">
+                                    <div class="stat-card-header">
+                                        <div>
+                                            <div class="stat-value" id="viewTotalPrescriptions">0</div>
+                                            <div class="stat-label">Prescriptions</div>
+                                        </div>
+                                        <div class="stat-icon blue"><i class="fas fa-file-prescription"></i></div>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-card-header">
+                                        <div>
+                                            <div class="stat-value" id="viewActiveMeds">0</div>
+                                            <div class="stat-label">Active Medications</div>
+                                        </div>
+                                        <div class="stat-icon green"><i class="fas fa-pills"></i></div>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-card-header">
+                                        <div>
+                                            <div class="stat-value" id="viewLastVisit">-</div>
+                                            <div class="stat-label">Last Visit</div>
+                                        </div>
+                                        <div class="stat-icon purple"><i class="fas fa-calendar"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Allergies & Conditions -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                                <div class="card">
+                                    <div class="card-header" style="background: #fef2f2;">
+                                        <span class="card-title" style="color: #dc2626;"><i class="fas fa-allergies"></i> Allergies</span>
+                                    </div>
+                                    <div class="card-body" id="viewAllergies">
+                                        <span class="badge" style="background: #f3f4f6; color: #6b7280;">None recorded</span>
+                                    </div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-header" style="background: #fef3c7;">
+                                        <span class="card-title" style="color: #d97706;"><i class="fas fa-notes-medical"></i> Conditions</span>
+                                    </div>
+                                    <div class="card-body" id="viewConditions">
+                                        <span class="badge" style="background: #f3f4f6; color: #6b7280;">None recorded</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Medications -->
+                            <div class="card" style="margin-top: 1rem;">
+                                <div class="card-header">
+                                    <span class="card-title"><i class="fas fa-pills"></i> Active Medications</span>
+                                </div>
+                                <div class="card-body" id="viewActiveMedsList">
+                                    <p style="color: var(--gray-500);">No active medications</p>
+                                </div>
+                            </div>
+
+                            <!-- Prescription History -->
+                            <div class="card" style="margin-top: 1rem;">
+                                <div class="card-header">
+                                    <span class="card-title"><i class="fas fa-history"></i> Prescription History</span>
+                                </div>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="viewPrescriptionHistory">
+                                    <p style="color: var(--gray-500);">No prescriptions found</p>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                <button class="btn btn-primary" onclick="loadPatientToAI()">
+                                    <i class="fas fa-robot"></i> Ask AI About This Patient
+                                </button>
+                                <button class="btn btn-secondary" onclick="viewPatientTimeline()">
+                                    <i class="fas fa-stream"></i> View Timeline
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2359,56 +2769,194 @@ Aspirin, 75mg, once daily"></textarea>
                 </div>
             </section>
 
-            <!-- Ask AI Page -->
+            <!-- Ask AI Page - Medical AI Assistant -->
             <section class="page-section" id="page-ask-ai">
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title"><i class="fas fa-robot" style="margin-right: 0.5rem;"></i>Ask AI - Medical Query Assistant</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label class="form-label">Your Question</label>
-                            <textarea class="form-input" id="aiQueryInput" rows="3" placeholder="Ask a question about patients, medications, interactions...
-
-Examples:
-• What medications is patient #1 taking?
-• Check interactions between aspirin and warfarin
-• Show medication history for patient #2"></textarea>
-                        </div>
-                        <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
-                            <div>
-                                <label class="form-label">Patient ID (optional)</label>
-                                <input type="number" class="form-input" id="aiQueryPatientId" placeholder="Patient ID" style="width: 150px;">
+                <!-- AI Assistant Header -->
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="display: flex; align-items: center; gap: 1.5rem;">
+                            <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem;">
+                                🤖
                             </div>
-                            <button class="btn btn-primary" onclick="submitAIQuery()">
-                                <i class="fas fa-paper-plane"></i> Ask AI
-                            </button>
+                            <div>
+                                <h2 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">Medical AI Assistant</h2>
+                                <p style="opacity: 0.9; font-size: 1rem;">Your intelligent companion for patient queries, drug analysis, safety checks & more</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card" id="aiResponseCard" style="display: none;">
+                <!-- Patient Context Card -->
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title"><i class="fas fa-comment-alt" style="margin-right: 0.5rem;"></i>AI Response</span>
-                        <span class="badge" id="aiConfidenceBadge">-</span>
+                        <span class="card-title"><i class="fas fa-user-circle"></i> Patient Context</span>
+                        <button class="btn btn-secondary btn-sm" onclick="togglePatientContext()">
+                            <i class="fas fa-chevron-down" id="patientContextToggle"></i>
+                        </button>
                     </div>
-                    <div class="card-body">
-                        <div id="queryResponse"></div>
+                    <div class="card-body" id="patientContextBody">
+                        <!-- Load from Database Section -->
+                        <div style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <i class="fas fa-database" style="font-size: 1.5rem; color: #0284c7;"></i>
+                                <div>
+                                    <h4 style="margin: 0; color: #0369a1;">Load Patient from Database</h4>
+                                    <p style="margin: 0; font-size: 0.85rem; color: #0284c7;">Enter patient UID to auto-fill context with saved data</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.75rem;">
+                                <input type="text" class="form-input" id="aiLoadPatientUid" placeholder="e.g., PT20260130-A1B2" style="flex: 1;">
+                                <button class="btn btn-primary" onclick="loadPatientContextFromDB()">
+                                    <i class="fas fa-download"></i> Load Context
+                                </button>
+                            </div>
+                            <div id="aiLoadPatientStatus" style="margin-top: 0.75rem; display: none;"></div>
+                        </div>
+
+                        <div style="text-align: center; color: var(--gray-400); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                            — OR enter manually —
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-id-card"></i> Patient ID</label>
+                                <input type="text" class="form-input" id="aiPatientId" placeholder="e.g., P001">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-user"></i> Patient Name</label>
+                                <input type="text" class="form-input" id="aiPatientName" placeholder="Patient name">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-birthday-cake"></i> Age</label>
+                                <input type="text" class="form-input" id="aiPatientAge" placeholder="e.g., 45">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-allergies"></i> Allergies (comma-separated)</label>
+                                <input type="text" class="form-input" id="aiPatientAllergies" placeholder="e.g., Penicillin, Aspirin, Sulfa">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-notes-medical"></i> Conditions (comma-separated)</label>
+                                <input type="text" class="form-input" id="aiPatientConditions" placeholder="e.g., Diabetes, Hypertension">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label class="form-label"><i class="fas fa-pills"></i> Current Medications (one per line: Name, Dosage, Frequency)</label>
+                            <textarea class="form-input" id="aiPatientMedications" rows="3" placeholder="Metformin, 500mg, twice daily
+Lisinopril, 10mg, once daily
+Aspirin, 81mg, once daily"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="savePatientContext()">
+                                <i class="fas fa-save"></i> Save Context
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearPatientContext()">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                            <span id="contextSaveStatus" style="display: flex; align-items: center; color: var(--success); display: none;">
+                                <i class="fas fa-check-circle"></i> Saved!
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card">
+                <!-- Chat Interface -->
+                <div class="card" style="margin-bottom: 0;">
                     <div class="card-header">
-                        <span class="card-title"><i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>Suggested Questions</span>
+                        <span class="card-title"><i class="fas fa-comments"></i> Chat with AI</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <span class="badge badge-success" id="aiStatusBadge">
+                                <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Online
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <!-- Chat Messages Container -->
+                        <div id="aiChatContainer" style="height: 400px; overflow-y: auto; padding: 1.5rem; background: linear-gradient(180deg, #f8fafc, #f1f5f9);">
+                            <!-- Welcome Message -->
+                            <div class="ai-message" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                                    🤖
+                                </div>
+                                <div style="background: white; padding: 1rem 1.25rem; border-radius: 0 16px 16px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-width: 80%;">
+                                    <p style="margin: 0; color: var(--gray-700);">
+                                        <strong>Hello, Doctor!</strong> I'm your Medical AI Assistant. I can help you with:
+                                    </p>
+                                    <ul style="margin: 0.75rem 0 0 1.25rem; color: var(--gray-600); font-size: 0.9rem;">
+                                        <li>Patient medication queries</li>
+                                        <li>Drug interaction checks</li>
+                                        <li>Allergy verification</li>
+                                        <li>Drug normalization (brand → generic)</li>
+                                        <li>Comprehensive safety analysis</li>
+                                        <li>Medication timeline & history</li>
+                                    </ul>
+                                    <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; color: var(--gray-500);">
+                                        💡 Tip: Set patient context above for more accurate responses!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Input Area -->
+                        <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--gray-200); background: white;">
+                            <div style="display: flex; gap: 1rem;">
+                                <div style="flex: 1; position: relative;">
+                                    <textarea class="form-input" id="aiQueryInput" rows="2" placeholder="Ask me anything... e.g., 'What medications is the patient taking?' or 'Check for drug interactions'" style="padding-right: 50px; resize: none;"></textarea>
+                                    <button class="btn btn-primary" onclick="submitAIQuery()" style="position: absolute; right: 8px; bottom: 8px; padding: 0.5rem 1rem; border-radius: 8px;">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Actions -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+                                <span style="font-size: 0.8rem; color: var(--gray-500); margin-right: 0.5rem;">Quick:</span>
+                                <button class="btn btn-sm" style="background: linear-gradient(135deg, #dbeafe, #e0e7ff); color: #4338ca; border: none; font-size: 0.75rem;" onclick="quickAIQuery('medications')">
+                                    💊 Medications
+                                </button>
+                                <button class="btn btn-sm" style="background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: none; font-size: 0.75rem;" onclick="quickAIQuery('allergies')">
+                                    🚨 Allergies
+                                </button>
+                                <button class="btn btn-sm" style="background: linear-gradient(135deg, #fee2e2, #fecaca); color: #991b1b; border: none; font-size: 0.75rem;" onclick="quickAIQuery('interactions')">
+                                    ⚠️ Interactions
+                                </button>
+                                <button class="btn btn-sm" style="background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; border: none; font-size: 0.75rem;" onclick="quickAIQuery('safety')">
+                                    🔬 Safety Analysis
+                                </button>
+                                <button class="btn btn-sm" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6; border: none; font-size: 0.75rem;" onclick="quickAIQuery('timeline')">
+                                    📅 Timeline
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Suggestions Card -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-lightbulb"></i> Suggested Questions</span>
                     </div>
                     <div class="card-body">
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('What medications is patient #1 taking?')">Current medications</button>
-                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Show medication history for patient #1')">Medication history</button>
-                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Check interactions between aspirin and ibuprofen')">Check interactions</button>
-                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Show timeline for patient #1')">Patient timeline</button>
-                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('What conditions does patient #1 have?')">Conditions</button>
-                            <button class="btn btn-secondary btn-sm" onclick="fillQuery('Give me a summary for patient #1')">Patient summary</button>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;" id="aiSuggestions">
+                            <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="fillQuery('What medications is the patient taking?')">
+                                <i class="fas fa-pills" style="color: var(--primary);"></i> What medications is the patient taking?
+                            </button>
+                            <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="fillQuery('Does the patient have any allergies?')">
+                                <i class="fas fa-allergies" style="color: var(--danger);"></i> Does the patient have any allergies?
+                            </button>
+                            <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="fillQuery('Check for drug interactions')">
+                                <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> Check for drug interactions
+                            </button>
+                            <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="fillQuery('Run comprehensive safety analysis')">
+                                <i class="fas fa-shield-alt" style="color: var(--success);"></i> Run comprehensive safety analysis
+                            </button>
+                            <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="fillQuery('What is the generic name for Lipitor?')">
+                                <i class="fas fa-search" style="color: var(--info);"></i> What is the generic name for Lipitor?
+                            </button>
+                            <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="fillQuery('Is Aspirin safe with Warfarin?')">
+                                <i class="fas fa-question-circle" style="color: var(--purple);"></i> Is Aspirin safe with Warfarin?
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2589,53 +3137,6 @@ Examples:
         </div>
     </main>
 
-    <!-- Add Patient Modal -->
-    <div class="modal-overlay" id="addPatientModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Add New Patient</h3>
-                <button class="modal-close" onclick="closeModal('addPatientModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Full Name *</label>
-                    <input type="text" class="form-input" id="newPatientName" placeholder="Enter patient name">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Age</label>
-                        <input type="number" class="form-input" id="newPatientAge" placeholder="Age">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Gender</label>
-                        <select class="form-select" id="newPatientGender">
-                            <option value="">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Phone Number</label>
-                    <input type="tel" class="form-input" id="newPatientPhone" placeholder="Phone number">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Known Allergies</label>
-                    <input type="text" class="form-input" id="newPatientAllergies" placeholder="e.g., Penicillin, Sulfa">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('addPatientModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="savePatient()">
-                    <i class="fas fa-save"></i> Save Patient
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Text Input Modal -->
     <div class="modal-overlay" id="textInputModal">
         <div class="modal" style="width: 600px;">
@@ -2665,8 +3166,8 @@ Examples:
     </div>
 
     <script>
-        // Configuration
-        const API_BASE = 'http://localhost:8000';
+        // Configuration - Use relative URLs for portability
+        const API_BASE = '';
         let currentResult = null;
         let selectedFile = null;
         let stats = { scans: 0, meds: 0, alerts: 0, totalConfidence: 0 };
@@ -3221,22 +3722,6 @@ Examples:
             document.getElementById(id).classList.remove('show');
         }
 
-        function openAddPatient() {
-            openModal('addPatientModal');
-        }
-
-        function savePatient() {
-            const name = document.getElementById('newPatientName').value;
-            if (!name) {
-                alert('Please enter patient name');
-                return;
-            }
-            
-            // Save patient logic here
-            alert('Patient saved successfully!');
-            closeModal('addPatientModal');
-        }
-
         function openTextInput() {
             openModal('textInputModal');
         }
@@ -3355,7 +3840,7 @@ Examples:
         }
 
         // ==================== Patient Prescription Management ====================
-        const PATIENT_API = 'http://localhost:8000/api/v2/patient-prescriptions';
+        const PATIENT_API = '/api/v2/patient-prescriptions';
         
         let currentPatientId = null;
         let selectedFiles = [];
@@ -3714,6 +4199,9 @@ Examples:
                 // Load prescriptions table
                 loadPrescriptionsTable(summary.patient.prescriptions);
                 
+                // Auto-set AI context with patient data for AI queries
+                autoSetAIPatientContext(patientId, summary);
+                
             } catch (e) {
                 console.error('Failed to load patient:', e);
                 alert('Failed to load patient details: ' + e.message);
@@ -3826,7 +4314,7 @@ Examples:
         }
 
         // ==================== Enhanced Features ====================
-        const API_V2_BASE = 'http://localhost:8000/api/v2';
+        const API_V2_BASE = '/api/v2';
 
         // ==================== Drug Normalization Functions ====================
         
@@ -4634,84 +5122,423 @@ Examples:
             container.innerHTML = svg;
         }
 
-        // AI Query Functions
+        // ==================== AI Medical Assistant Functions ====================
+        
+        let aiChatHistory = [];
+        let aiPatientContext = null;
+        
+        // Toggle patient context panel
+        function togglePatientContext() {
+            const body = document.getElementById('patientContextBody');
+            const toggle = document.getElementById('patientContextToggle');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                toggle.classList.remove('fa-chevron-right');
+                toggle.classList.add('fa-chevron-down');
+            } else {
+                body.style.display = 'none';
+                toggle.classList.remove('fa-chevron-down');
+                toggle.classList.add('fa-chevron-right');
+            }
+        }
+        
+        // Auto-set AI patient context from patient detail view
+        async function autoSetAIPatientContext(patientId, summary) {
+            try {
+                // Extract medications from current medications
+                const medications = (summary.patient.current_medications || []).map(med => ({
+                    name: med.name || '',
+                    dosage: med.dosage || '',
+                    frequency: med.frequency || ''
+                }));
+                
+                // Set the AI context
+                aiPatientContext = {
+                    patient_id: patientId,
+                    name: summary.patient.name,
+                    age: summary.patient.age,
+                    gender: summary.patient.gender,
+                    medications: medications,
+                    allergies: summary.patient.allergies || [],
+                    conditions: summary.patient.chronic_conditions || []
+                };
+                
+                // Also sync with backend AI service
+                await fetch(`${API_V2_BASE}/ai/set-patient`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: patientId,
+                        name: summary.patient.name,
+                        age: summary.patient.age?.toString() || '',
+                        medications: medications,
+                        allergies: summary.patient.allergies || [],
+                        conditions: summary.patient.chronic_conditions || []
+                    })
+                });
+                
+                // Also pre-fill the AI form fields
+                document.getElementById('aiPatientId').value = patientId;
+                document.getElementById('aiPatientName').value = summary.patient.name || '';
+                document.getElementById('aiPatientAge').value = summary.patient.age || '';
+                document.getElementById('aiPatientAllergies').value = (summary.patient.allergies || []).join(', ');
+                document.getElementById('aiPatientConditions').value = (summary.patient.chronic_conditions || []).join(', ');
+                document.getElementById('aiPatientMedications').value = medications.map(m => 
+                    `${m.name}, ${m.dosage}, ${m.frequency}`
+                ).join('\n');
+                
+                console.log(`AI context auto-set for patient ${patientId} with ${medications.length} medications`);
+                
+            } catch (error) {
+                console.error('Error auto-setting AI context:', error);
+            }
+        }
+        
+        // Save patient context for AI
+        async function savePatientContext() {
+            const patientId = document.getElementById('aiPatientId').value || `P${Date.now()}`;
+            const name = document.getElementById('aiPatientName').value;
+            const age = document.getElementById('aiPatientAge').value;
+            const allergiesStr = document.getElementById('aiPatientAllergies').value;
+            const conditionsStr = document.getElementById('aiPatientConditions').value;
+            const medicationsStr = document.getElementById('aiPatientMedications').value;
+            
+            // Parse allergies and conditions
+            const allergies = allergiesStr ? allergiesStr.split(',').map(a => a.trim()).filter(a => a) : [];
+            const conditions = conditionsStr ? conditionsStr.split(',').map(c => c.trim()).filter(c => c) : [];
+            
+            // Parse medications
+            const medications = [];
+            if (medicationsStr) {
+                const lines = medicationsStr.split('\n');
+                for (const line of lines) {
+                    if (line.trim()) {
+                        const parts = line.split(',').map(p => p.trim());
+                        medications.push({
+                            name: parts[0] || '',
+                            dosage: parts[1] || '',
+                            frequency: parts[2] || '',
+                            prescribed_date: new Date().toISOString().split('T')[0]
+                        });
+                    }
+                }
+            }
+            
+            // Store locally
+            aiPatientContext = {
+                patient_id: patientId,
+                name: name,
+                age: age,
+                medications: medications,
+                allergies: allergies,
+                conditions: conditions
+            };
+            
+            // Save to backend
+            try {
+                await fetch(`${API_V2_BASE}/ai/set-patient`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: patientId,
+                        name: name,
+                        age: age,
+                        medications: medications,
+                        allergies: allergies,
+                        conditions: conditions
+                    })
+                });
+                
+                // Show saved status
+                const status = document.getElementById('contextSaveStatus');
+                status.style.display = 'flex';
+                setTimeout(() => { status.style.display = 'none'; }, 2000);
+                
+                // Add system message
+                addAIMessage('system', `✅ Patient context saved for **${name || patientId}**\n- ${medications.length} medications\n- ${allergies.length} allergies\n- ${conditions.length} conditions`);
+                
+            } catch (error) {
+                console.error('Error saving patient context:', error);
+            }
+        }
+        
+        // Clear patient context
+        function clearPatientContext() {
+            document.getElementById('aiPatientId').value = '';
+            document.getElementById('aiPatientName').value = '';
+            document.getElementById('aiPatientAge').value = '';
+            document.getElementById('aiPatientAllergies').value = '';
+            document.getElementById('aiPatientConditions').value = '';
+            document.getElementById('aiPatientMedications').value = '';
+            aiPatientContext = null;
+        }
+        
+        // Submit AI query
         async function submitAIQuery() {
-            const query = document.getElementById('aiQueryInput').value;
-            const patientId = document.getElementById('aiQueryPatientId').value;
-
+            const queryInput = document.getElementById('aiQueryInput');
+            const query = queryInput.value.trim();
+            
             if (!query) {
-                alert('Please enter a question');
                 return;
             }
-
-            document.getElementById('aiResponseCard').style.display = 'block';
-            document.getElementById('queryResponse').innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Processing your question...</p></div>';
-
+            
+            // Add user message to chat
+            addAIMessage('user', query);
+            queryInput.value = '';
+            
+            // Show typing indicator
+            const typingId = addTypingIndicator();
+            
             try {
-                const response = await fetch(`${API_V2_BASE}/query`, {
+                // Build context from form if no patient context saved
+                let context = aiPatientContext;
+                if (!context) {
+                    context = buildContextFromForm();
+                }
+                
+                const response = await fetch(`${API_V2_BASE}/ai/query`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         query: query,
-                        patient_id: patientId ? parseInt(patientId) : null
+                        patient_id: context?.patient_id || null,
+                        context: context
                     })
                 });
-
+                
                 const data = await response.json();
-                displayAIResponse(data);
+                
+                // Remove typing indicator
+                removeTypingIndicator(typingId);
+                
+                // Add AI response
+                displayAIChatResponse(data);
+                
             } catch (error) {
-                document.getElementById('queryResponse').innerHTML = `
-                    <div class="alert-box danger">
-                        <span class="alert-icon">❌</span>
-                        <div class="alert-content">
-                            <h5>Error</h5>
-                            <p>${error.message}</p>
-                        </div>
+                removeTypingIndicator(typingId);
+                addAIMessage('error', `❌ Error: ${error.message}`);
+            }
+        }
+        
+        // Build context from form fields
+        function buildContextFromForm() {
+            const allergiesStr = document.getElementById('aiPatientAllergies').value;
+            const conditionsStr = document.getElementById('aiPatientConditions').value;
+            const medicationsStr = document.getElementById('aiPatientMedications').value;
+            
+            if (!allergiesStr && !conditionsStr && !medicationsStr) {
+                return null;
+            }
+            
+            const allergies = allergiesStr ? allergiesStr.split(',').map(a => a.trim()).filter(a => a) : [];
+            const conditions = conditionsStr ? conditionsStr.split(',').map(c => c.trim()).filter(c => c) : [];
+            
+            const medications = [];
+            if (medicationsStr) {
+                const lines = medicationsStr.split('\n');
+                for (const line of lines) {
+                    if (line.trim()) {
+                        const parts = line.split(',').map(p => p.trim());
+                        medications.push({
+                            name: parts[0] || '',
+                            dosage: parts[1] || '',
+                            frequency: parts[2] || ''
+                        });
+                    }
+                }
+            }
+            
+            return {
+                patient_id: document.getElementById('aiPatientId').value || null,
+                medications: medications,
+                allergies: allergies,
+                conditions: conditions
+            };
+        }
+        
+        // Quick AI query shortcuts
+        function quickAIQuery(type) {
+            const queries = {
+                'medications': 'What medications is the patient taking?',
+                'allergies': 'What are the patient\'s allergies?',
+                'interactions': 'Check for drug interactions between current medications',
+                'safety': 'Run comprehensive safety analysis on current medications',
+                'timeline': 'Show medication timeline and history'
+            };
+            
+            document.getElementById('aiQueryInput').value = queries[type] || '';
+            submitAIQuery();
+        }
+        
+        // Add message to chat
+        function addAIMessage(type, content) {
+            const container = document.getElementById('aiChatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message';
+            messageDiv.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 1.5rem;';
+            
+            if (type === 'user') {
+                messageDiv.style.flexDirection = 'row-reverse';
+                messageDiv.innerHTML = `
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                        👨‍⚕️
+                    </div>
+                    <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 1rem 1.25rem; border-radius: 16px 0 16px 16px; max-width: 80%;">
+                        <p style="margin: 0;">${escapeHtml(content)}</p>
+                    </div>
+                `;
+            } else if (type === 'system') {
+                messageDiv.innerHTML = `
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                        🤖
+                    </div>
+                    <div style="background: linear-gradient(135deg, #dbeafe, #e0e7ff); padding: 1rem 1.25rem; border-radius: 0 16px 16px 16px; max-width: 80%;">
+                        <p style="margin: 0; color: var(--gray-700);">${formatAIContent(content)}</p>
+                    </div>
+                `;
+            } else if (type === 'error') {
+                messageDiv.innerHTML = `
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                        ⚠️
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fee2e2, #fecaca); padding: 1rem 1.25rem; border-radius: 0 16px 16px 16px; max-width: 80%;">
+                        <p style="margin: 0; color: #991b1b;">${escapeHtml(content)}</p>
                     </div>
                 `;
             }
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
         }
-
-        function displayAIResponse(data) {
-            const confidence = Math.round((data.confidence || 0) * 100);
-            const badgeClass = confidence >= 70 ? 'badge-success' : confidence >= 40 ? 'badge-warning' : 'badge-danger';
-            document.getElementById('aiConfidenceBadge').className = `badge ${badgeClass}`;
-            document.getElementById('aiConfidenceBadge').textContent = `${confidence}% confidence`;
-
-            let html = `
-                <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <div style="white-space: pre-wrap; line-height: 1.6;">${data.answer || 'No answer available'}</div>
+        
+        // Add typing indicator
+        function addTypingIndicator() {
+            const container = document.getElementById('aiChatContainer');
+            const id = 'typing-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.id = id;
+            messageDiv.className = 'ai-message';
+            messageDiv.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 1.5rem;';
+            messageDiv.innerHTML = `
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                    🤖
+                </div>
+                <div style="background: white; padding: 1rem 1.25rem; border-radius: 0 16px 16px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="display: flex; gap: 4px;">
+                        <span style="width: 8px; height: 8px; background: #667eea; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
+                        <span style="width: 8px; height: 8px; background: #667eea; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
+                        <span style="width: 8px; height: 8px; background: #667eea; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both;"></span>
+                    </div>
                 </div>
             `;
-
-            if (data.evidence && data.evidence.length > 0) {
-                html += `
-                    <div style="margin-bottom: 1rem;">
-                        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500);">Evidence</label>
-                        <ul style="margin-top: 0.5rem; padding-left: 1.25rem;">
-                            ${data.evidence.map(e => `<li style="font-size: 0.875rem; margin-bottom: 0.25rem;">${JSON.stringify(e)}</li>`).join('')}
-                        </ul>
-                    </div>
-                `;
-            }
-
-            if (data.related_queries && data.related_queries.length > 0) {
-                html += `
-                    <div>
-                        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500);">Related Questions</label>
-                        <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            ${data.related_queries.map(q => `<button class="btn btn-secondary btn-sm" onclick="fillQuery('${q}')">${q}</button>`).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            document.getElementById('queryResponse').innerHTML = html;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            return id;
         }
-
+        
+        // Remove typing indicator
+        function removeTypingIndicator(id) {
+            const element = document.getElementById(id);
+            if (element) element.remove();
+        }
+        
+        // Display AI chat response
+        function displayAIChatResponse(data) {
+            const container = document.getElementById('aiChatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message';
+            messageDiv.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 1.5rem;';
+            
+            // Build response HTML
+            let responseContent = `<div style="margin-bottom: 0.75rem;">${formatAIContent(data.answer || 'No response available')}</div>`;
+            
+            // Add warnings if any
+            if (data.warnings && data.warnings.length > 0) {
+                responseContent += `<div style="margin-top: 1rem; padding: 0.75rem; background: linear-gradient(135deg, #fef2f2, #fee2e2); border-radius: 8px; border-left: 4px solid #dc2626;">`;
+                responseContent += `<strong style="color: #991b1b;">⚠️ Warnings:</strong><ul style="margin: 0.5rem 0 0 1rem; color: #991b1b;">`;
+                data.warnings.forEach(w => {
+                    responseContent += `<li>${w.message || JSON.stringify(w)}</li>`;
+                });
+                responseContent += `</ul></div>`;
+            }
+            
+            // Add recommendations if any
+            if (data.recommendations && data.recommendations.length > 0) {
+                responseContent += `<div style="margin-top: 1rem; padding: 0.75rem; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 8px; border-left: 4px solid #16a34a;">`;
+                responseContent += `<strong style="color: #166534;">💡 Recommendations:</strong><ul style="margin: 0.5rem 0 0 1rem; color: #166534;">`;
+                data.recommendations.forEach(r => {
+                    responseContent += `<li>${r}</li>`;
+                });
+                responseContent += `</ul></div>`;
+            }
+            
+            // Add follow-up questions
+            if (data.follow_up_questions && data.follow_up_questions.length > 0) {
+                responseContent += `<div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
+                data.follow_up_questions.slice(0, 3).forEach(q => {
+                    responseContent += `<button onclick="fillQuery('${q.replace(/'/g, "\\'")}')" style="padding: 0.35rem 0.75rem; background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 20px; font-size: 0.75rem; color: #667eea; cursor: pointer;">${q}</button>`;
+                });
+                responseContent += `</div>`;
+            }
+            
+            // Add metadata
+            const confidence = Math.round((data.confidence || 0) * 100);
+            const confidenceColor = confidence >= 80 ? '#16a34a' : confidence >= 50 ? '#d97706' : '#dc2626';
+            responseContent += `<div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--gray-500);">`;
+            responseContent += `<span><i class="fas fa-chart-line"></i> Confidence: <strong style="color: ${confidenceColor}">${confidence}%</strong></span>`;
+            if (data.processing_time_ms) {
+                responseContent += `<span><i class="fas fa-clock"></i> ${Math.round(data.processing_time_ms)}ms</span>`;
+            }
+            responseContent += `</div>`;
+            
+            messageDiv.innerHTML = `
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                    🤖
+                </div>
+                <div style="background: white; padding: 1rem 1.25rem; border-radius: 0 16px 16px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-width: 85%;">
+                    ${responseContent}
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Format AI content (markdown-like)
+        function formatAIContent(content) {
+            if (!content) return '';
+            return content
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/• /g, '&bull; ')
+                .replace(/- /g, '&ndash; ');
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Fill query input
         function fillQuery(query) {
             document.getElementById('aiQueryInput').value = query;
+            document.getElementById('aiQueryInput').focus();
         }
+        
+        // Handle Enter key in query input
+        document.addEventListener('DOMContentLoaded', () => {
+            const queryInput = document.getElementById('aiQueryInput');
+            if (queryInput) {
+                queryInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        submitAIQuery();
+                    }
+                });
+            }
+        });
 
         // Review Queue Functions
         async function refreshReviewQueue() {
@@ -4928,6 +5755,309 @@ Examples:
             if (page === 'review-queue') refreshReviewQueue();
             if (page === 'audit') refreshAuditTrail();
         };
+
+        // ========================================
+        // Doctor QR Scan & Patient Lookup Functions
+        // ========================================
+        
+        const STAFF_API = '/api/staff';
+        let currentViewedPatient = null;
+
+        // Initialize Doctor QR drop zone
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('doctorQrDropZone');
+            const fileInput = document.getElementById('doctorQrFileInput');
+            
+            if (dropZone && fileInput) {
+                dropZone.addEventListener('click', () => fileInput.click());
+                
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.style.background = 'rgba(255,255,255,0.25)';
+                    dropZone.style.borderColor = 'white';
+                });
+                
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.style.background = 'rgba(255,255,255,0.15)';
+                    dropZone.style.borderColor = 'rgba(255,255,255,0.4)';
+                });
+                
+                dropZone.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    dropZone.style.background = 'rgba(255,255,255,0.15)';
+                    const file = e.dataTransfer.files[0];
+                    if (file) await doctorScanQrImage(file);
+                });
+                
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (file) await doctorScanQrImage(file);
+                    e.target.value = '';
+                });
+            }
+        });
+
+        async function doctorScanQrImage(file) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch(`${STAFF_API}/doctor/scan-qr`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.patient_found) {
+                    displayPatientDetails(data);
+                } else if (data.decoded_uid && !data.patient_found) {
+                    alert(`QR Code decoded (${data.decoded_uid}) but patient not found in database.`);
+                } else {
+                    alert('Could not read QR code. Please ensure the image is clear.');
+                }
+            } catch (error) {
+                console.error('QR scan error:', error);
+                alert('Error scanning QR code: ' + error.message);
+            }
+        }
+
+        async function doctorLookupPatient() {
+            const uid = document.getElementById('doctorPatientUidInput').value.trim();
+            if (!uid) {
+                alert('Please enter a patient UID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${STAFF_API}/patient/${uid}/full-details`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPatientDetails(data);
+                } else {
+                    alert(data.detail || 'Patient not found');
+                }
+            } catch (error) {
+                console.error('Lookup error:', error);
+                alert('Patient not found: ' + error.message);
+            }
+        }
+
+        function displayPatientDetails(data) {
+            currentViewedPatient = data;
+            
+            // Hide initial state, show patient view
+            document.getElementById('patientNotFoundState').style.display = 'none';
+            document.getElementById('patientFoundState').style.display = 'block';
+            
+            // Patient header
+            document.getElementById('viewPatientName').textContent = data.patient?.name || 'Unknown';
+            document.getElementById('viewPatientUid').textContent = `UID: ${data.patient?.uid || data.decoded_uid}`;
+            document.getElementById('viewPatientAge').textContent = data.patient?.age ? `${data.patient.age} years` : '';
+            document.getElementById('viewPatientGender').textContent = data.patient?.gender || '';
+            document.getElementById('viewPatientBlood').textContent = data.patient?.blood_group ? `🩸 ${data.patient.blood_group}` : '';
+            
+            // Stats
+            document.getElementById('viewTotalPrescriptions').textContent = data.summary?.total_prescriptions || 0;
+            document.getElementById('viewActiveMeds').textContent = data.summary?.active_medications_count || 0;
+            document.getElementById('viewLastVisit').textContent = data.summary?.last_visit || '-';
+            
+            // Allergies
+            const allergiesEl = document.getElementById('viewAllergies');
+            const allergies = data.patient?.allergies || [];
+            if (allergies.length > 0) {
+                allergiesEl.innerHTML = allergies.map(a => 
+                    `<span class="badge" style="background: #fee2e2; color: #dc2626; margin-right: 0.5rem;">${a}</span>`
+                ).join('');
+            } else {
+                allergiesEl.innerHTML = '<span class="badge" style="background: #f3f4f6; color: #6b7280;">None recorded</span>';
+            }
+            
+            // Conditions
+            const conditionsEl = document.getElementById('viewConditions');
+            const conditions = data.patient?.conditions || [];
+            if (conditions.length > 0) {
+                conditionsEl.innerHTML = conditions.map(c => 
+                    `<span class="badge" style="background: #fef3c7; color: #d97706; margin-right: 0.5rem;">${c}</span>`
+                ).join('');
+            } else {
+                conditionsEl.innerHTML = '<span class="badge" style="background: #f3f4f6; color: #6b7280;">None recorded</span>';
+            }
+            
+            // Active Medications
+            const activeMedsEl = document.getElementById('viewActiveMedsList');
+            const activeMeds = data.active_medications || [];
+            if (activeMeds.length > 0) {
+                activeMedsEl.innerHTML = `
+                    <div style="display: grid; gap: 0.75rem;">
+                        ${activeMeds.map(med => `
+                            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0;">
+                                <div style="font-weight: 600; color: #166534;">${med.name || med.drug_name}</div>
+                                <div style="font-size: 0.85rem; color: #15803d;">
+                                    ${med.dosage || ''} • ${med.frequency || ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                activeMedsEl.innerHTML = '<p style="color: var(--gray-500);">No active medications</p>';
+            }
+            
+            // Prescription History
+            const historyEl = document.getElementById('viewPrescriptionHistory');
+            const prescriptions = data.prescriptions || [];
+            if (prescriptions.length > 0) {
+                historyEl.innerHTML = prescriptions.map((presc, idx) => `
+                    <div style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; background: ${idx === 0 ? '#f0f9ff' : 'white'};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <div>
+                                <div style="font-weight: 600; color: var(--gray-800);">
+                                    ${presc.prescription_date || 'Unknown date'}
+                                    ${idx === 0 ? '<span class="badge badge-success" style="margin-left: 0.5rem;">Latest</span>' : ''}
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--gray-500);">
+                                    Dr. ${presc.doctor_name || 'Unknown'} • ${presc.hospital_name || ''}
+                                </div>
+                            </div>
+                            <span class="badge">#${presc.prescription_number || idx + 1}</span>
+                        </div>
+                        ${presc.diagnosis ? `<div style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 0.5rem;"><strong>Diagnosis:</strong> ${presc.diagnosis}</div>` : ''}
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            ${(presc.medications || []).map(med => `
+                                <span class="badge" style="background: #dbeafe; color: #1d4ed8;">
+                                    💊 ${med.name || med.drug_name} ${med.dosage || ''}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                historyEl.innerHTML = '<p style="color: var(--gray-500);">No prescriptions found</p>';
+            }
+        }
+
+        function clearPatientView() {
+            currentViewedPatient = null;
+            document.getElementById('patientNotFoundState').style.display = 'block';
+            document.getElementById('patientFoundState').style.display = 'none';
+            document.getElementById('doctorPatientUidInput').value = '';
+        }
+
+        function loadPatientToAI() {
+            if (!currentViewedPatient) return;
+            
+            const patient = currentViewedPatient.patient;
+            const activeMeds = currentViewedPatient.active_medications || [];
+            
+            // Navigate to AI page
+            navigateTo('ask-ai');
+            
+            // Fill patient context
+            document.getElementById('aiPatientId').value = patient?.uid || '';
+            document.getElementById('aiPatientName').value = patient?.name || '';
+            document.getElementById('aiPatientAge').value = patient?.age || '';
+            document.getElementById('aiPatientAllergies').value = (patient?.allergies || []).join(', ');
+            document.getElementById('aiPatientConditions').value = (patient?.conditions || []).join(', ');
+            
+            // Fill medications
+            const medsText = activeMeds.map(med => 
+                `${med.name || med.drug_name}, ${med.dosage || ''}, ${med.frequency || ''}`
+            ).join('\n');
+            document.getElementById('aiPatientMedications').value = medsText;
+            
+            // Save context
+            savePatientContext();
+        }
+
+        function viewPatientTimeline() {
+            if (!currentViewedPatient) return;
+            // Navigate to timeline page with patient context
+            navigateTo('timeline');
+        }
+
+        // ========================================
+        // AI Context Loading from Database
+        // ========================================
+
+        async function loadPatientContextFromDB() {
+            const uid = document.getElementById('aiLoadPatientUid').value.trim();
+            const statusEl = document.getElementById('aiLoadPatientStatus');
+            
+            if (!uid) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = '<span style="color: #dc2626;"><i class="fas fa-exclamation-circle"></i> Please enter a patient UID</span>';
+                return;
+            }
+            
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> Loading...</span>';
+            
+            try {
+                const response = await fetch(`${STAFF_API}/patient/${uid}/ai-context`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const ctx = data.ai_context;
+                    
+                    // Fill form fields
+                    document.getElementById('aiPatientId').value = ctx.patient_info?.uid || '';
+                    document.getElementById('aiPatientName').value = ctx.patient_info?.name || '';
+                    document.getElementById('aiPatientAge').value = ctx.patient_info?.age || '';
+                    document.getElementById('aiPatientAllergies').value = (ctx.medical_profile?.allergies || []).join(', ');
+                    document.getElementById('aiPatientConditions').value = (ctx.medical_profile?.chronic_conditions || []).join(', ');
+                    
+                    // Fill medications
+                    const medsText = (ctx.current_medications || []).map(med => 
+                        `${med.name}, ${med.dosage || ''}, ${med.frequency || ''}`
+                    ).join('\n');
+                    document.getElementById('aiPatientMedications').value = medsText;
+                    
+                    // Save the context
+                    savePatientContext();
+                    
+                    statusEl.innerHTML = `<span style="color: #059669;"><i class="fas fa-check-circle"></i> Loaded ${ctx.patient_info?.name}'s context successfully!</span>`;
+                    
+                    // Add AI message about loaded context
+                    addAIMessage(`📋 Loaded patient context for <strong>${ctx.patient_info?.name}</strong>:
+                        <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.9rem;">
+                            <li>Age: ${ctx.patient_info?.age || 'Unknown'}</li>
+                            <li>Allergies: ${(ctx.medical_profile?.allergies || []).join(', ') || 'None'}</li>
+                            <li>Conditions: ${(ctx.medical_profile?.chronic_conditions || []).join(', ') || 'None'}</li>
+                            <li>Active Medications: ${ctx.current_medications?.length || 0}</li>
+                            <li>Prescription History: ${ctx.prescription_history?.length || 0} records</li>
+                        </ul>
+                        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--gray-500);">You can now ask me questions about this patient!</p>`);
+                    
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, 3000);
+                } else {
+                    statusEl.innerHTML = `<span style="color: #dc2626;"><i class="fas fa-times-circle"></i> ${data.detail || 'Patient not found'}</span>`;
+                }
+            } catch (error) {
+                console.error('Error loading context:', error);
+                statusEl.innerHTML = `<span style="color: #dc2626;"><i class="fas fa-times-circle"></i> Error: ${error.message}</span>`;
+            }
+        }
+
+        function addAIMessage(content) {
+            const container = document.getElementById('aiChatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message';
+            messageDiv.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 1.5rem;';
+            messageDiv.innerHTML = `
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                    🤖
+                </div>
+                <div style="background: white; padding: 1rem 1.25rem; border-radius: 0 16px 16px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-width: 80%;">
+                    ${content}
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
     </script>
 </body>
 </html>

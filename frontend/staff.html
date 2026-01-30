@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal | Medical AI Gateway</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --success: #059669;
+            --success-light: #10b981;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--gray-900);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: var(--gray-800);
+        }
+
+        .header p {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: var(--success-light);
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        /* Workflow Selection */
+        .workflow-selector {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .workflow-card {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .workflow-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .workflow-card.active {
+            border-color: var(--primary);
+        }
+
+        .workflow-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .workflow-card.new-patient .icon {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .workflow-card.existing-patient .icon {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .workflow-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-800);
+        }
+
+        .workflow-card p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .workflow-card ul {
+            margin-top: 1rem;
+            padding-left: 1.25rem;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+
+        .workflow-card li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Main Content */
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--gray-50);
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label .required {
+            color: var(--danger);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Workflow Content Areas */
+        .workflow-content {
+            display: none;
+        }
+
+        .workflow-content.active {
+            display: block;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        /* Upload Area */
+        .upload-zone {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: var(--gray-50);
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone h4 {
+            font-size: 1.1rem;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone p {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+
+        .upload-zone.has-file {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .upload-zone.has-file i {
+            color: var(--success);
+        }
+
+        /* QR Code Display */
+        .qr-container {
+            text-align: center;
+            padding: 2rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .qr-container h4 {
+            margin-bottom: 1rem;
+            color: var(--gray-700);
+        }
+
+        #qrcode {
+            display: inline-block;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-info {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+
+        .uid-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: monospace;
+            margin: 1rem 0;
+        }
+
+        /* Existing Patient Lookup */
+        .lookup-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .lookup-section .form-input {
+            flex: 1;
+        }
+
+        .patient-info-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .patient-info-card h4 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .patient-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .patient-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .patient-info-item label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+
+        .patient-info-item span {
+            font-size: 0.9rem;
+            color: var(--gray-800);
+        }
+
+        /* Result Display */
+        .result-section {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .result-section h4 {
+            margin-bottom: 1rem;
+            color: var(--gray-800);
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 1rem;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .error-message {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            padding: 1rem;
+            color: var(--danger);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Medications List */
+        .medications-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .medication-item {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .medication-name {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 0.5rem;
+        }
+
+        .medication-details {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .header, .workflow-selector, .btn {
+                display: none;
+            }
+
+            .qr-container {
+                padding: 0;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .workflow-selector {
+                flex-direction: column;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row, .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tab Navigation */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-400);
+        }
+
+        .step.active {
+            color: var(--primary);
+        }
+
+        .step.completed {
+            color: var(--success);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .step.active .step-number {
+            background: var(--primary);
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Hidden file input */
+        .hidden-input {
+            display: none;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+        }
+
+        /* Prescription history */
+        .prescription-history {
+            margin-top: 1rem;
+        }
+
+        .prescription-history-item {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prescription-history-item .date {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .prescription-history-item .doctor {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .prescription-history-item .med-count {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-user-nurse"></i>
+                </div>
+                <div>
+                    <h1>Staff Portal</h1>
+                    <p>Prescription OCR & Patient Management</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="/dashboard" class="btn btn-secondary">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </div>
+        </header>
+
+        <!-- Workflow Selector -->
+        <div class="workflow-selector">
+            <div class="workflow-card new-patient active" onclick="selectWorkflow('new')">
+                <div class="icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h3>New Patient</h3>
+                <p>Register a new patient and scan their first prescription</p>
+                <ul>
+                    <li>Enter patient details</li>
+                    <li>Scan prescription with OCR</li>
+                    <li>Generate permanent QR code</li>
+                    <li>Save patient & prescription</li>
+                </ul>
+            </div>
+            <div class="workflow-card existing-patient" onclick="selectWorkflow('existing')">
+                <div class="icon">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <h3>Existing Patient</h3>
+                <p>Scan QR code or enter UID to add new prescription</p>
+                <ul>
+                    <li>Scan QR code or enter UID</li>
+                    <li>View patient info</li>
+                    <li>Scan new prescription</li>
+                    <li>Add to patient history</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- New Patient Workflow -->
+        <div id="workflow-new" class="workflow-content active">
+            <div class="step-indicator">
+                <div class="step active" id="new-step-1">
+                    <span class="step-number">1</span>
+                    <span>Patient Info</span>
+                </div>
+                <div class="step" id="new-step-2">
+                    <span class="step-number">2</span>
+                    <span>Scan Prescription</span>
+                </div>
+                <div class="step" id="new-step-3">
+                    <span class="step-number">3</span>
+                    <span>Generate QR</span>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <!-- Patient Information Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">
+                            <i class="fas fa-user"></i> Patient Information
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <form id="new-patient-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">First Name <span class="required">*</span></label>
+                                    <input type="text" class="form-input" id="new-first-name" required placeholder="Enter first name">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name <span class="required">*</span></label>
+                                    <input type="text" class="form-input" id="new-last-name" required placeholder="Enter last name">
+                                </div>
+                            </div>
+
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label class="form-label">Age</label>
+                                    <input type="number" class="form-input" id="new-age" placeholder="Age" min="0" max="150">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender</label>
+                                    <select class="form-select" id="new-gender">
+                                        <option value="">Select</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Blood Group</label>
+                                    <select class="form-select" id="new-blood-group">
+                                        <option value="">Select</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O-</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Phone Number <span class="required">*</span></label>
+                                    <input type="tel" class="form-input" id="new-phone" required placeholder="+91 XXXXXXXXXX">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-input" id="new-email" placeholder="patient@email.com">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Address</label>
+                                <textarea class="form-textarea" id="new-address" placeholder="Full address"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Known Allergies</label>
+                                <input type="text" class="form-input" id="new-allergies" placeholder="e.g., Penicillin, Aspirin (comma-separated)">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Chronic Conditions</label>
+                                <input type="text" class="form-input" id="new-conditions" placeholder="e.g., Diabetes, Hypertension (comma-separated)">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Emergency Contact Name</label>
+                                    <input type="text" class="form-input" id="new-emergency-name" placeholder="Contact name">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Emergency Contact Phone</label>
+                                    <input type="tel" class="form-input" id="new-emergency-phone" placeholder="Contact phone">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Prescription Upload & QR -->
+                <div>
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <span class="card-title">
+                                <i class="fas fa-file-prescription"></i> Scan Prescription
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="upload-zone" id="new-upload-zone" onclick="document.getElementById('new-prescription-file').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h4>Upload Prescription</h4>
+                                <p>Click or drag & drop to upload prescription image/PDF</p>
+                            </div>
+                            <input type="file" class="hidden-input" id="new-prescription-file" accept="image/*,.pdf" onchange="handleNewFileSelect(event)">
+                            
+                            <div id="new-file-info" style="display: none; margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Display (hidden initially) -->
+                    <div class="card" id="new-qr-section" style="display: none;">
+                        <div class="card-header">
+                            <span class="card-title">
+                                <i class="fas fa-qrcode"></i> Patient QR Code
+                            </span>
+                            <button class="btn btn-secondary" onclick="printQRCode()">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="qr-container">
+                                <h4>Patient UID</h4>
+                                <div class="uid-display" id="new-uid-display"></div>
+                                <div id="qrcode"></div>
+                                <p class="qr-info">Scan this QR code for quick patient lookup</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons" style="max-width: 600px; margin: 2rem auto 0;">
+                <button class="btn btn-primary btn-lg" id="new-submit-btn" onclick="submitNewPatient()">
+                    <i class="fas fa-save"></i> Create Patient & Process Prescription
+                </button>
+            </div>
+
+            <!-- Result Section -->
+            <div id="new-result-section" style="display: none; margin-top: 2rem;"></div>
+        </div>
+
+        <!-- Existing Patient Workflow -->
+        <div id="workflow-existing" class="workflow-content">
+            <div class="step-indicator">
+                <div class="step active" id="existing-step-1">
+                    <span class="step-number">1</span>
+                    <span>Find Patient</span>
+                </div>
+                <div class="step" id="existing-step-2">
+                    <span class="step-number">2</span>
+                    <span>Scan Prescription</span>
+                </div>
+                <div class="step" id="existing-step-3">
+                    <span class="step-number">3</span>
+                    <span>Save</span>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <!-- Patient Lookup -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">
+                            <i class="fas fa-search"></i> Find Patient
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="lookup-section">
+                            <input type="text" class="form-input" id="existing-uid" placeholder="Enter Patient UID or scan QR code">
+                            <button class="btn btn-primary" onclick="lookupPatient()">
+                                <i class="fas fa-search"></i> Lookup
+                            </button>
+                        </div>
+
+                        <!-- QR Options -->
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <p style="color: var(--gray-500); margin-bottom: 0.75rem;">— OR —</p>
+                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn btn-secondary" onclick="startQRScanner()">
+                                    <i class="fas fa-camera"></i> Scan with Camera
+                                </button>
+                                <button class="btn btn-secondary" onclick="document.getElementById('qr-upload-file').click()">
+                                    <i class="fas fa-image"></i> Upload QR Image
+                                </button>
+                            </div>
+                            <input type="file" class="hidden-input" id="qr-upload-file" accept="image/*" onchange="handleQRUpload(event)">
+                            <p style="color: var(--gray-400); font-size: 0.8rem; margin-top: 0.5rem;">
+                                Upload a QR code image from your computer
+                            </p>
+                        </div>
+
+                        <!-- QR Upload Status -->
+                        <div id="qr-upload-status" style="display: none; margin-bottom: 1rem;"></div>
+
+                        <!-- Patient Info Display -->
+                        <div id="existing-patient-info" style="display: none;">
+                            <div class="patient-info-card">
+                                <h4><i class="fas fa-user-check" style="color: var(--success);"></i> Patient Found</h4>
+                                <div class="patient-info-grid">
+                                    <div class="patient-info-item">
+                                        <label>Name</label>
+                                        <span id="existing-patient-name">-</span>
+                                    </div>
+                                    <div class="patient-info-item">
+                                        <label>UID</label>
+                                        <span id="existing-patient-uid">-</span>
+                                    </div>
+                                    <div class="patient-info-item">
+                                        <label>Age / Gender</label>
+                                        <span id="existing-patient-age-gender">-</span>
+                                    </div>
+                                    <div class="patient-info-item">
+                                        <label>Phone</label>
+                                        <span id="existing-patient-phone">-</span>
+                                    </div>
+                                    <div class="patient-info-item">
+                                        <label>Allergies</label>
+                                        <span id="existing-patient-allergies">-</span>
+                                    </div>
+                                    <div class="patient-info-item">
+                                        <label>Total Prescriptions</label>
+                                        <span id="existing-patient-prescriptions">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Medications -->
+                            <div id="existing-active-meds" style="display: none;">
+                                <h5 style="margin-bottom: 0.75rem; color: var(--gray-700);">
+                                    <i class="fas fa-pills"></i> Active Medications
+                                </h5>
+                                <ul class="medications-list" id="existing-meds-list"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prescription Upload -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">
+                            <i class="fas fa-file-prescription"></i> Add New Prescriptions
+                        </span>
+                        <span style="font-size: 0.8rem; color: var(--gray-500);">
+                            Upload multiple files at once
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-zone" id="existing-upload-zone" onclick="document.getElementById('existing-prescription-file').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h4>Upload Prescriptions</h4>
+                            <p>Click or drag & drop multiple prescription images/PDFs</p>
+                            <p style="font-size: 0.8rem; color: var(--gray-400); margin-top: 0.5rem;">
+                                Hold Ctrl/Cmd to select multiple files
+                            </p>
+                        </div>
+                        <input type="file" class="hidden-input" id="existing-prescription-file" accept="image/*,.pdf" multiple onchange="handleExistingFileSelect(event)">
+                        
+                        <!-- Files List -->
+                        <div id="existing-files-list" style="display: none; margin-top: 1rem;"></div>
+                        
+                        <div id="existing-file-info" style="display: none; margin-top: 1rem;"></div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-success btn-lg" id="existing-submit-btn" onclick="submitExistingPrescriptions()" disabled>
+                                <i class="fas fa-plus"></i> Add All Prescriptions
+                            </button>
+                            <button class="btn btn-secondary" id="existing-clear-btn" onclick="clearExistingFiles()" style="display: none;">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div id="existing-result-section" style="display: none; margin-top: 2rem;"></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loading-text">Processing...</p>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qr-scanner-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 16px; max-width: 500px; width: 90%; text-align: center;">
+            <h3 style="margin-bottom: 1rem;">Scan Patient QR Code</h3>
+            <video id="qr-video" style="width: 100%; border-radius: 8px; background: #000;"></video>
+            <p style="margin-top: 1rem; color: var(--gray-500);">Position the QR code within the camera view</p>
+            <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="stopQRScanner()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_BASE = '/api/staff';
+
+        // State
+        let currentWorkflow = 'new';
+        let newPatientFile = null;
+        let existingPatientFiles = [];  // Changed to array for multiple files
+        let existingPatientData = null;
+        let qrCodeInstance = null;
+
+        // Workflow Selection
+        function selectWorkflow(workflow) {
+            currentWorkflow = workflow;
+            
+            // Update cards
+            document.querySelectorAll('.workflow-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`.workflow-card.${workflow === 'new' ? 'new-patient' : 'existing-patient'}`).classList.add('active');
+            
+            // Show/hide content
+            document.querySelectorAll('.workflow-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`workflow-${workflow}`).classList.add('active');
+        }
+
+        // File Handling - New Patient
+        function handleNewFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                newPatientFile = file;
+                updateUploadZone('new', file);
+                updateStep('new', 2);
+            }
+        }
+
+        // File Handling - Existing Patient (Multiple Files)
+        function handleExistingFileSelect(event) {
+            const files = Array.from(event.target.files);
+            if (files.length > 0) {
+                existingPatientFiles = files;
+                updateUploadZoneMultiple(files);
+                updateStep('existing', 2);
+                document.getElementById('existing-submit-btn').disabled = !existingPatientData;
+                document.getElementById('existing-clear-btn').style.display = 'inline-flex';
+            }
+        }
+
+        function clearExistingFiles() {
+            existingPatientFiles = [];
+            document.getElementById('existing-prescription-file').value = '';
+            document.getElementById('existing-files-list').style.display = 'none';
+            document.getElementById('existing-file-info').style.display = 'none';
+            document.getElementById('existing-submit-btn').disabled = true;
+            document.getElementById('existing-clear-btn').style.display = 'none';
+            
+            const zone = document.getElementById('existing-upload-zone');
+            zone.classList.remove('has-file');
+            zone.innerHTML = `
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h4>Upload Prescriptions</h4>
+                <p>Click or drag & drop multiple prescription images/PDFs</p>
+                <p style="font-size: 0.8rem; color: var(--gray-400); margin-top: 0.5rem;">
+                    Hold Ctrl/Cmd to select multiple files
+                </p>
+            `;
+        }
+
+        function updateUploadZoneMultiple(files) {
+            const zone = document.getElementById('existing-upload-zone');
+            const filesList = document.getElementById('existing-files-list');
+            const fileInfo = document.getElementById('existing-file-info');
+            
+            zone.classList.add('has-file');
+            zone.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <h4>${files.length} file${files.length > 1 ? 's' : ''} selected</h4>
+                <p>Total: ${(files.reduce((sum, f) => sum + f.size, 0) / 1024).toFixed(1)} KB</p>
+            `;
+            
+            // Show files list
+            filesList.style.display = 'block';
+            filesList.innerHTML = `
+                <div style="background: var(--gray-50); border-radius: 8px; padding: 1rem;">
+                    <h5 style="margin-bottom: 0.75rem; color: var(--gray-700); font-size: 0.9rem;">
+                        <i class="fas fa-files"></i> Selected Files:
+                    </h5>
+                    <ul style="list-style: none; margin: 0; padding: 0;">
+                        ${files.map((file, idx) => `
+                            <li style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                <i class="fas fa-file-image" style="color: var(--primary);"></i>
+                                <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                                <span style="color: var(--gray-400);">${(file.size / 1024).toFixed(1)} KB</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    ${files.length} file${files.length > 1 ? 's' : ''} ready for processing
+                </div>
+            `;
+        }
+
+        function updateUploadZone(type, file) {
+            const zone = document.getElementById(`${type}-upload-zone`);
+            const fileInfo = document.getElementById(`${type}-file-info`);
+            
+            zone.classList.add('has-file');
+            zone.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <h4>${file.name}</h4>
+                <p>${(file.size / 1024).toFixed(1)} KB</p>
+            `;
+            
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    File ready for processing
+                </div>
+            `;
+        }
+
+        function updateStep(workflow, step) {
+            // Mark previous steps as completed
+            for (let i = 1; i < step; i++) {
+                const stepEl = document.getElementById(`${workflow}-step-${i}`);
+                stepEl.classList.remove('active');
+                stepEl.classList.add('completed');
+            }
+            
+            // Mark current step as active
+            const currentStep = document.getElementById(`${workflow}-step-${step}`);
+            if (currentStep) {
+                currentStep.classList.add('active');
+                currentStep.classList.remove('completed');
+            }
+        }
+
+        // Submit New Patient
+        async function submitNewPatient() {
+            // Validate required fields
+            const firstName = document.getElementById('new-first-name').value.trim();
+            const lastName = document.getElementById('new-last-name').value.trim();
+            const phone = document.getElementById('new-phone').value.trim();
+
+            if (!firstName || !lastName) {
+                showError('new', 'Please enter first and last name');
+                return;
+            }
+
+            if (!phone) {
+                showError('new', 'Please enter phone number');
+                return;
+            }
+
+            if (!newPatientFile) {
+                showError('new', 'Please upload a prescription file');
+                return;
+            }
+
+            showLoading('Creating patient and processing prescription...');
+
+            try {
+                // Create FormData
+                const formData = new FormData();
+                formData.append('first_name', firstName);
+                formData.append('last_name', lastName);
+                formData.append('phone', phone);
+                formData.append('age', document.getElementById('new-age').value || '');
+                formData.append('gender', document.getElementById('new-gender').value || '');
+                formData.append('blood_group', document.getElementById('new-blood-group').value || '');
+                formData.append('email', document.getElementById('new-email').value || '');
+                formData.append('address', document.getElementById('new-address').value || '');
+                formData.append('allergies', document.getElementById('new-allergies').value || '');
+                formData.append('conditions', document.getElementById('new-conditions').value || '');
+                formData.append('emergency_contact_name', document.getElementById('new-emergency-name').value || '');
+                formData.append('emergency_contact_phone', document.getElementById('new-emergency-phone').value || '');
+                formData.append('file', newPatientFile);
+
+                const response = await fetch(`${API_BASE}/create-patient`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    hideLoading();
+                    
+                    // Show QR code
+                    showQRCode(data.patient.uid, data.patient);
+                    updateStep('new', 3);
+                    
+                    // Show success result
+                    showSuccess('new', data);
+                } else {
+                    throw new Error(data.detail || 'Failed to create patient');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('new', error.message);
+            }
+        }
+
+        // Handle QR Code Image Upload
+        async function handleQRUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById('qr-upload-status');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = `
+                <div style="background: var(--gray-100); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <i class="fas fa-spinner fa-spin"></i> Processing QR code image...
+                </div>
+            `;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${API_BASE}/decode-qr`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    if (data.patient_found && data.patient) {
+                        // Patient found - display info
+                        statusDiv.innerHTML = `
+                            <div class="success-message">
+                                <i class="fas fa-check-circle"></i>
+                                QR code decoded: ${data.decoded_uid}
+                            </div>
+                        `;
+                        existingPatientData = data.patient;
+                        displayPatientInfo(data.patient);
+                        document.getElementById('existing-uid').value = data.decoded_uid;
+                        document.getElementById('existing-submit-btn').disabled = !existingPatientFile;
+                    } else {
+                        // QR decoded but patient not found
+                        statusDiv.innerHTML = `
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i>
+                                QR decoded (${data.decoded_uid}) but patient not found in database
+                            </div>
+                        `;
+                        document.getElementById('existing-uid').value = data.decoded_uid;
+                    }
+                } else {
+                    throw new Error(data.detail || 'Failed to decode QR code');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        ${error.message}
+                    </div>
+                `;
+            }
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Lookup Existing Patient
+        async function lookupPatient() {
+            const uid = document.getElementById('existing-uid').value.trim();
+            
+            if (!uid) {
+                showError('existing', 'Please enter a Patient UID');
+                return;
+            }
+
+            showLoading('Looking up patient...');
+
+            try {
+                const response = await fetch(`${API_BASE}/patient/${encodeURIComponent(uid)}`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    hideLoading();
+                    existingPatientData = data.patient;
+                    displayPatientInfo(data.patient);
+                    document.getElementById('existing-submit-btn').disabled = !existingPatientFile;
+                } else {
+                    throw new Error(data.detail || 'Patient not found');
+                }
+            } catch (error) {
+                hideLoading();
+                existingPatientData = null;
+                document.getElementById('existing-patient-info').style.display = 'none';
+                showError('existing', error.message);
+            }
+        }
+
+        function displayPatientInfo(patient) {
+            document.getElementById('existing-patient-info').style.display = 'block';
+            document.getElementById('existing-patient-name').textContent = patient.name || '-';
+            document.getElementById('existing-patient-uid').textContent = patient.uid || '-';
+            document.getElementById('existing-patient-age-gender').textContent = 
+                `${patient.age || '-'} / ${patient.gender || '-'}`;
+            document.getElementById('existing-patient-phone').textContent = patient.phone || '-';
+            document.getElementById('existing-patient-allergies').textContent = 
+                (patient.allergies && patient.allergies.length) ? patient.allergies.join(', ') : 'None';
+            document.getElementById('existing-patient-prescriptions').textContent = 
+                patient.prescriptions_count || '0';
+
+            // Show active medications if available
+            if (patient.active_medications && patient.active_medications.length > 0) {
+                document.getElementById('existing-active-meds').style.display = 'block';
+                const medsList = document.getElementById('existing-meds-list');
+                medsList.innerHTML = patient.active_medications.map(med => `
+                    <li class="medication-item">
+                        <div class="medication-name">${med.name}</div>
+                        <div class="medication-details">
+                            ${med.dosage || ''} ${med.frequency || ''}
+                        </div>
+                    </li>
+                `).join('');
+            } else {
+                document.getElementById('existing-active-meds').style.display = 'none';
+            }
+        }
+
+        // Submit Multiple Prescriptions for Existing Patient
+        async function submitExistingPrescriptions() {
+            if (!existingPatientData) {
+                showError('existing', 'Please lookup a patient first');
+                return;
+            }
+
+            if (!existingPatientFiles || existingPatientFiles.length === 0) {
+                showError('existing', 'Please upload at least one prescription file');
+                return;
+            }
+
+            const fileCount = existingPatientFiles.length;
+            showLoading(`Processing ${fileCount} prescription${fileCount > 1 ? 's' : ''}...`);
+
+            try {
+                const formData = new FormData();
+                formData.append('patient_uid', existingPatientData.uid);
+                
+                // Append all files
+                for (const file of existingPatientFiles) {
+                    formData.append('files', file);
+                }
+
+                const response = await fetch(`${API_BASE}/add-prescriptions`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    hideLoading();
+                    updateStep('existing', 3);
+                    showMultipleSuccess('existing', data);
+                    
+                    // Update patient info with new prescription count
+                    if (data.patient) {
+                        existingPatientData = {
+                            ...existingPatientData,
+                            ...data.patient
+                        };
+                        displayPatientInfo(existingPatientData);
+                    }
+                    
+                    // Clear files after successful upload
+                    clearExistingFiles();
+                } else {
+                    throw new Error(data.detail || 'Failed to add prescriptions');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('existing', error.message);
+            }
+        }
+
+        // Show success for multiple prescriptions
+        function showMultipleSuccess(workflow, data) {
+            const section = document.getElementById(`${workflow}-result-section`);
+            section.style.display = 'block';
+            
+            let prescriptionsHtml = '';
+            if (data.prescriptions && data.prescriptions.length > 0) {
+                prescriptionsHtml = `
+                    <div style="margin-top: 1.5rem;">
+                        <h5 style="margin-bottom: 1rem; color: var(--gray-700);">
+                            <i class="fas fa-list"></i> Processed Prescriptions (${data.prescriptions.length})
+                        </h5>
+                        ${data.prescriptions.map((presc, idx) => `
+                            <div style="background: var(--gray-50); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                    <strong style="color: var(--gray-800);">
+                                        <i class="fas fa-file-medical" style="color: var(--primary);"></i>
+                                        ${presc.filename}
+                                    </strong>
+                                    <span style="background: var(--success); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem;">
+                                        ${presc.medications_count} medication${presc.medications_count !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                                ${presc.doctor_name ? `<div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                                    <i class="fas fa-user-md"></i> Dr. ${presc.doctor_name}
+                                </div>` : ''}
+                                ${presc.diagnosis && presc.diagnosis.length > 0 ? `
+                                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                                        <strong>Diagnosis:</strong> ${Array.isArray(presc.diagnosis) ? presc.diagnosis.join(', ') : presc.diagnosis}
+                                    </div>
+                                ` : ''}
+                                ${presc.medications && presc.medications.length > 0 ? `
+                                    <ul class="medications-list" style="margin-top: 0.5rem;">
+                                        ${presc.medications.map(med => `
+                                            <li class="medication-item" style="padding: 0.5rem; margin-bottom: 0.25rem;">
+                                                <div class="medication-name" style="font-size: 0.875rem;">${med.name || 'Unknown'}</div>
+                                                <div class="medication-details" style="font-size: 0.75rem;">
+                                                    ${[med.dosage, med.frequency, med.duration].filter(Boolean).join(' • ')}
+                                                </div>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                ` : ''}
+                                ${presc.drug_interactions && presc.drug_interactions.length > 0 ? `
+                                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(220, 38, 38, 0.1); border-radius: 4px;">
+                                        <span style="color: var(--danger); font-size: 0.8rem;">
+                                            <i class="fas fa-exclamation-triangle"></i> 
+                                            ${presc.drug_interactions.length} drug interaction${presc.drug_interactions.length !== 1 ? 's' : ''} detected
+                                        </span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            let errorsHtml = '';
+            if (data.errors && data.errors.length > 0) {
+                errorsHtml = `
+                    <div style="margin-top: 1rem;">
+                        <h5 style="color: var(--danger); margin-bottom: 0.5rem;">
+                            <i class="fas fa-exclamation-circle"></i> Failed Files (${data.errors.length})
+                        </h5>
+                        ${data.errors.map(err => `
+                            <div class="error-message" style="margin-bottom: 0.5rem;">
+                                <strong>${err.filename}:</strong> ${err.error}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            section.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title" style="color: var(--success);">
+                            <i class="fas fa-check-circle"></i> ${data.message || 'Prescriptions Added'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="success-message">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <strong>${data.total_processed}</strong> prescription${data.total_processed !== 1 ? 's' : ''} processed successfully<br>
+                                <strong>${data.total_medications_added}</strong> total medications added
+                            </div>
+                        </div>
+                        ${prescriptionsHtml}
+                        ${errorsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // QR Code Generation
+        function showQRCode(uid, patient) {
+            document.getElementById('new-qr-section').style.display = 'block';
+            document.getElementById('new-uid-display').textContent = uid;
+            
+            // Clear previous QR code
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            
+            // Create QR code data
+            const qrData = JSON.stringify({
+                uid: uid,
+                name: patient.name,
+                type: 'patient'
+            });
+            
+            // Generate QR code
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: uid,  // Just the UID for simplicity
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function printQRCode() {
+            window.print();
+        }
+
+        // QR Scanner (simplified - in production use a proper library like html5-qrcode)
+        let videoStream = null;
+
+        function startQRScanner() {
+            document.getElementById('qr-scanner-modal').style.display = 'flex';
+            const video = document.getElementById('qr-video');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    videoStream = stream;
+                    video.srcObject = stream;
+                    video.play();
+                    // In production, add QR code detection here
+                })
+                .catch(err => {
+                    alert('Camera access denied. Please enter UID manually.');
+                    stopQRScanner();
+                });
+        }
+
+        function stopQRScanner() {
+            document.getElementById('qr-scanner-modal').style.display = 'none';
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+        }
+
+        // UI Helpers
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+
+        function showError(workflow, message) {
+            const section = document.getElementById(`${workflow}-result-section`);
+            section.style.display = 'block';
+            section.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function showSuccess(workflow, data) {
+            const section = document.getElementById(`${workflow}-result-section`);
+            section.style.display = 'block';
+            
+            let medicationsHtml = '';
+            if (data.prescription && data.prescription.medications && data.prescription.medications.length > 0) {
+                medicationsHtml = `
+                    <h5 style="margin-top: 1rem; margin-bottom: 0.75rem;">
+                        <i class="fas fa-pills"></i> Extracted Medications
+                    </h5>
+                    <ul class="medications-list">
+                        ${data.prescription.medications.map(med => `
+                            <li class="medication-item">
+                                <div class="medication-name">${med.name || 'Unknown'}</div>
+                                <div class="medication-details">
+                                    ${[med.dosage, med.frequency, med.duration].filter(Boolean).join(' • ')}
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            }
+
+            section.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title" style="color: var(--success);">
+                            <i class="fas fa-check-circle"></i> ${data.message || 'Success!'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="success-message">
+                            <i class="fas fa-check-circle"></i>
+                            ${workflow === 'new' ? 
+                                `Patient created successfully with UID: <strong>${data.patient?.uid}</strong>` :
+                                `Prescription added successfully`
+                            }
+                        </div>
+                        ${medicationsHtml}
+                        ${data.prescription?.diagnosis ? `
+                            <div style="margin-top: 1rem;">
+                                <strong>Diagnosis:</strong> ${Array.isArray(data.prescription.diagnosis) ? data.prescription.diagnosis.join(', ') : data.prescription.diagnosis}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Drag and Drop
+        ['new-upload-zone', 'existing-upload-zone'].forEach(id => {
+            const zone = document.getElementById(id);
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, () => zone.classList.add('dragover'));
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, () => zone.classList.remove('dragover'));
+            });
+
+            zone.addEventListener('drop', (e) => {
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                    if (id === 'new-upload-zone') {
+                        newPatientFile = files[0];
+                        updateUploadZone('new', files[0]);
+                        updateStep('new', 2);
+                    } else {
+                        // Support multiple files for existing patient
+                        existingPatientFiles = files;
+                        updateUploadZoneMultiple(files);
+                        updateStep('existing', 2);
+                        document.getElementById('existing-submit-btn').disabled = !existingPatientData;
+                        document.getElementById('existing-clear-btn').style.display = 'inline-flex';
+                    }
+                }
+            });
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for any URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const workflow = urlParams.get('workflow');
+            if (workflow === 'existing') {
+                selectWorkflow('existing');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -207,7 +207,8 @@ Return this exact JSON structure:
     "patient_name": "string or null - ONLY the person's name receiving treatment",
     "patient_age": "string or null - ONLY age number",
     "patient_gender": "Male/Female or null",
-    "patient_id": "string or null",
+    "patient_id": "string or null - CRITICAL: Look for UHID, Patient ID, Reg No, MRN, Hospital Number (e.g., 'UHID 23672' -> '23672')",
+    "patient_uhid": "string or null - UHID/Hospital unique ID number if found (e.g., 'UHID: 23672' -> '23672')",
     "patient_address": "string or null - ONLY address/location",
     "patient_phone": "string or null",
     "doctor_name": "string or null - ONLY doctor's name",
@@ -260,12 +261,15 @@ REMEMBER:
             
             data = json.loads(json_str)
             
+            # Extract UHID - prioritize patient_uhid, fallback to patient_id
+            patient_id = data.get('patient_uhid') or data.get('patient_id')
+            
             # Convert to PrescriptionData with all fields
             result = PrescriptionData(
                 patient_name=data.get('patient_name'),
                 patient_age=data.get('patient_age'),
                 patient_gender=data.get('patient_gender'),
-                patient_id=data.get('patient_id'),
+                patient_id=patient_id,
                 patient_address=data.get('patient_address'),
                 patient_phone=data.get('patient_phone'),
                 doctor_name=data.get('doctor_name'),
@@ -316,10 +320,16 @@ REMEMBER:
         # Extract patient info
         result.patient_name = self._find_patient_name(text, lines)
         result.patient_age, result.patient_gender = self._find_age_gender(text)
+        
+        # Extract UHID/Patient ID with comprehensive patterns
         result.patient_id = self._find_pattern(text, [
-            r'(?:patient\s*)?(?:id|reg\.?\s*no)\s*[:\-]?\s*(\d+)',
-            r'ID:\s*(\d+)',
+            r'(?:UHID|uhid)\s*[:\-]?\s*(\d+)',  # UHID patterns
+            r'(?:U\.?H\.?I\.?D\.?)\s*[:\-]?\s*(\d+)',
+            r'(?:patient\s*)?(?:id|reg\.?\s*no|mrn|hospital\s*no)\s*[:\-]?\s*(\d+)',
+            r'ID\s*[:\-]\s*(\d+)',
+            r'(?:OPD|IPD|REG)\s*(?:No\.?)?\s*[:\-]?\s*(\d+)',
         ])
+        
         result.patient_address = self._find_patient_address(text, lines)
         result.patient_phone = self._find_pattern(text, [
             r'(?:phone|mobile|contact|tel)\s*[:\-]?\s*(\+?\d[\d\s\-]{8,15})',
