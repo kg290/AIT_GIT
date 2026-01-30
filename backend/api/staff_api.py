@@ -165,43 +165,21 @@ async def create_patient_with_prescription(
     conditions: Optional[str] = Form(None, description="Comma-separated chronic conditions"),
     emergency_contact_name: Optional[str] = Form(None, description="Emergency contact name"),
     emergency_contact_phone: Optional[str] = Form(None, description="Emergency contact phone"),
-    file: UploadFile = File(..., description="Prescription image or PDF")
+    file: Optional[UploadFile] = File(None, description="Prescription image or PDF (optional)")
 ):
     """
-    Create a new patient with their first prescription.
+    Create a new patient, optionally with their first prescription.
     
     This endpoint:
     1. Creates a new patient record with a unique UID
-    2. Processes the prescription using OCR + AI
+    2. Optionally processes the prescription using OCR + AI
     3. Saves both patient and prescription to the database
     4. Returns the patient UID for QR code generation
     
     The frontend will generate the QR code client-side using the returned UID.
     """
-    # Validate file type
-    allowed_types = {'.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.webp'}
-    file_ext = os.path.splitext(file.filename)[1].lower()
-    
-    if file_ext not in allowed_types:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported file type. Allowed: {', '.join(allowed_types)}"
-        )
-    
     # Generate unique patient UID
     patient_uid = generate_patient_uid()
-    
-    # Save uploaded file
-    file_id = str(uuid.uuid4())
-    file_path = settings.UPLOAD_DIR / f"{file_id}{file_ext}"
-    
-    try:
-        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-    except Exception as e:
-        logger.error(f"Failed to save file: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
     
     # Parse allergies and conditions
     patient_allergies = []
@@ -212,32 +190,63 @@ async def create_patient_with_prescription(
     if conditions:
         patient_conditions = [c.strip() for c in conditions.split(',') if c.strip()]
     
+    # Parse age
+    patient_age = None
+    if age:
+        try:
+            patient_age = int(age)
+        except ValueError:
+            pass
+    
+    # Full patient name
+    full_name = f"{first_name} {last_name}"
+    
+    prescription_data = None
+    prescription_result = None
+    
+    # Process prescription if file is provided
+    if file and file.filename:
+        # Validate file type
+        allowed_types = {'.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.webp'}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        
+        if file_ext not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type. Allowed: {', '.join(allowed_types)}"
+            )
+        
+        # Save uploaded file
+        file_id = str(uuid.uuid4())
+        file_path = settings.UPLOAD_DIR / f"{file_id}{file_ext}"
+        
+        try:
+            os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        except Exception as e:
+            logger.error(f"Failed to save file: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+        
+        try:
+            # Process prescription using OCR + AI
+            result = complete_processor.process(
+                file_path=str(file_path),
+                patient_allergies=patient_allergies,
+                patient_id=patient_uid,
+                save_to_db=False
+            )
+            
+            prescription_data = result.to_dict()
+            prescription_data['filename'] = file.filename
+            prescription_data['allergies'] = patient_allergies
+        except Exception as e:
+            logger.error(f"Failed to process prescription: {e}")
+            # Continue without prescription data - patient will still be created
+    
     try:
-        # Process prescription using OCR + AI
-        result = complete_processor.process(
-            file_path=str(file_path),
-            patient_allergies=patient_allergies,
-            patient_id=patient_uid,
-            save_to_db=False
-        )
-        
-        prescription_data = result.to_dict()
-        prescription_data['filename'] = file.filename
-        prescription_data['allergies'] = patient_allergies
-        
         # Get unified patient service
         service = get_unified_patient_service()
-        
-        # Parse age
-        patient_age = None
-        if age:
-            try:
-                patient_age = int(age)
-            except ValueError:
-                pass
-        
-        # Full patient name
-        full_name = f"{first_name} {last_name}"
         
         # Create patient in database
         patient = service.get_or_create_patient(
@@ -260,15 +269,30 @@ async def create_patient_with_prescription(
             emergency_contact_phone=emergency_contact_phone
         )
         
-        # Add prescription to database
-        add_result = service.add_prescription(patient_uid, prescription_data)
+        prescriptions_count = 0
+        prescription_response = None
         
-        # Get updated patient summary
-        patient_summary = service.get_patient_summary(patient_uid)
+        # Add prescription to database if we have prescription data
+        if prescription_data:
+            add_result = service.add_prescription(patient_uid, prescription_data)
+            prescriptions_count = 1
+            prescription_response = {
+                'prescription_id': add_result.get('prescription_id'),
+                'medications': prescription_data.get('medications', []),
+                'diagnosis': prescription_data.get('diagnosis', []),
+                'doctor_name': prescription_data.get('doctor_name'),
+                'confidence': prescription_data.get('confidence')
+            }
+        
+        # Build response message
+        if prescription_data:
+            message = 'Patient created and prescription processed successfully'
+        else:
+            message = 'Patient created successfully (no prescription uploaded)'
         
         return JSONResponse(content={
             'success': True,
-            'message': 'Patient created and prescription processed successfully',
+            'message': message,
             'patient': {
                 'uid': patient_uid,
                 'name': full_name,
@@ -277,15 +301,9 @@ async def create_patient_with_prescription(
                 'phone': phone,
                 'allergies': patient_allergies,
                 'conditions': patient_conditions,
-                'prescriptions_count': 1
+                'prescriptions_count': prescriptions_count
             },
-            'prescription': {
-                'prescription_id': add_result.get('prescription_id'),
-                'medications': prescription_data.get('medications', []),
-                'diagnosis': prescription_data.get('diagnosis', []),
-                'doctor_name': prescription_data.get('doctor_name'),
-                'confidence': prescription_data.get('confidence')
-            },
+            'prescription': prescription_response,
             'qr_data': {
                 'uid': patient_uid,
                 'name': full_name

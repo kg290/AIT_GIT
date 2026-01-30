@@ -1192,12 +1192,11 @@
                 return;
             }
 
-            if (!newPatientFile) {
-                showError('new', 'Please upload a prescription file');
-                return;
-            }
-
-            showLoading('Creating patient and processing prescription...');
+            // Prescription is now optional
+            const loadingMsg = newPatientFile 
+                ? 'Creating patient and processing prescription...'
+                : 'Creating patient...';
+            showLoading(loadingMsg);
 
             try {
                 // Create FormData
@@ -1214,7 +1213,11 @@
                 formData.append('conditions', document.getElementById('new-conditions').value || '');
                 formData.append('emergency_contact_name', document.getElementById('new-emergency-name').value || '');
                 formData.append('emergency_contact_phone', document.getElementById('new-emergency-phone').value || '');
-                formData.append('file', newPatientFile);
+                
+                // Only append file if a prescription was uploaded
+                if (newPatientFile) {
+                    formData.append('file', newPatientFile);
+                }
 
                 const response = await fetch(`${API_BASE}/create-patient`, {
                     method: 'POST',
@@ -1277,7 +1280,7 @@
                         existingPatientData = data.patient;
                         displayPatientInfo(data.patient);
                         document.getElementById('existing-uid').value = data.decoded_uid;
-                        document.getElementById('existing-submit-btn').disabled = !existingPatientFile;
+                        document.getElementById('existing-submit-btn').disabled = existingPatientFiles.length === 0;
                     } else {
                         // QR decoded but patient not found
                         statusDiv.innerHTML = `
@@ -1323,7 +1326,7 @@
                     hideLoading();
                     existingPatientData = data.patient;
                     displayPatientInfo(data.patient);
-                    document.getElementById('existing-submit-btn').disabled = !existingPatientFile;
+                    document.getElementById('existing-submit-btn').disabled = existingPatientFiles.length === 0;
                 } else {
                     throw new Error(data.detail || 'Patient not found');
                 }
