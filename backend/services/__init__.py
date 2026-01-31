@@ -10,6 +10,7 @@ from .temporal_reasoning_service import TemporalReasoningService
 from .audit_service import AuditService
 from .query_service import QueryService
 from .document_processor import DocumentProcessor
+from .handwriting_enhancer import HandwritingEnhancer, handwriting_enhancer
 
 __all__ = [
     'OCRService',
@@ -23,4 +24,6 @@ __all__ = [
     'AuditService',
     'QueryService',
     'DocumentProcessor',
+    'HandwritingEnhancer',
+    'handwriting_enhancer',
 ]

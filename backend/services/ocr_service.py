@@ -1,11 +1,11 @@
 """
 OCR Service - Google Cloud Vision integration
-Simple, reliable OCR without preprocessing
+Enhanced with handwriting preprocessing and multi-pass OCR
 """
 import os
 import io
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +15,7 @@ from PIL import Image
 import pymupdf
 
 from backend.config import settings
+from backend.services.handwriting_enhancer import handwriting_enhancer, HandwritingEnhancer
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
 
@@ -69,14 +70,16 @@ class OCRResult:
 
 
 class OCRService:
-    """Simple OCR Service using Google Cloud Vision"""
+    """Enhanced OCR Service with handwriting optimization"""
     
     def __init__(self):
         self.client = vision.ImageAnnotatorClient()
         self.low_confidence_threshold = settings.OCR_CONFIDENCE_THRESHOLD
+        self.enhancer = handwriting_enhancer
+        self.enable_handwriting_enhancement = True
     
-    def process_document(self, file_path: str) -> OCRResult:
-        """Process a document (image or PDF)"""
+    def process_document(self, file_path: str, enhance_handwriting: bool = True) -> OCRResult:
+        """Process a document (image or PDF) with optional handwriting enhancement"""
         start_time = datetime.now()
         
         file_path = Path(file_path)
@@ -86,35 +89,132 @@ class OCRService:
         ext = file_path.suffix.lower()
         
         if ext == '.pdf':
-            result = self._process_pdf(file_path)
+            result = self._process_pdf(file_path, enhance_handwriting)
         elif ext in ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp']:
-            result = self._process_image(file_path)
+            result = self._process_image(file_path, enhance_handwriting)
         else:
             raise ValueError(f"Unsupported file type: {ext}")
         
         result.processing_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
         return result
     
-    def process_image_bytes(self, image_bytes: bytes, filename: str = "upload") -> OCRResult:
-        """Process image from bytes"""
+    def process_image_bytes(self, image_bytes: bytes, filename: str = "upload", 
+                           enhance_handwriting: bool = True) -> OCRResult:
+        """Process image from bytes with handwriting enhancement"""
         start_time = datetime.now()
-        result = self._extract_text(image_bytes)
+        
+        if enhance_handwriting and self.enable_handwriting_enhancement:
+            result = self._extract_with_enhancement(image_bytes)
+        else:
+            result = self._extract_text(image_bytes)
+        
         result.processing_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
         return result
     
-    def _process_image(self, file_path: Path) -> OCRResult:
-        """Process a single image file"""
+    def _process_image(self, file_path: Path, enhance_handwriting: bool = True) -> OCRResult:
+        """Process a single image file with optional enhancement"""
         with open(file_path, 'rb') as f:
             content = f.read()
+        
+        if enhance_handwriting and self.enable_handwriting_enhancement:
+            return self._extract_with_enhancement(content)
         return self._extract_text(content)
     
-    def _process_pdf(self, file_path: Path) -> OCRResult:
-        """Process a multi-page PDF"""
+    def _extract_with_enhancement(self, image_bytes: bytes, page_number: int = 1) -> OCRResult:
+        """
+        Multi-pass OCR with handwriting enhancement
+        Tries multiple image preprocessing techniques and combines best results
+        """
+        logger.info("Running enhanced handwriting OCR...")
+        
+        # Generate multiple enhanced versions
+        enhanced_versions = self.enhancer.enhance_for_handwriting(image_bytes)
+        
+        all_results = []
+        
+        # Run OCR on each version
+        for i, version_bytes in enumerate(enhanced_versions):
+            try:
+                result = self._extract_text(version_bytes, page_number)
+                all_results.append({
+                    'version': i,
+                    'result': result,
+                    'confidence': result.overall_confidence,
+                    'word_count': result.word_count
+                })
+                logger.info(f"  Version {i}: {result.word_count} words, {result.overall_confidence:.2%} confidence")
+            except Exception as e:
+                logger.warning(f"  Version {i} failed: {e}")
+        
+        # Also try original
+        try:
+            original_result = self._extract_text(image_bytes, page_number)
+            all_results.append({
+                'version': 'original',
+                'result': original_result,
+                'confidence': original_result.overall_confidence,
+                'word_count': original_result.word_count
+            })
+            logger.info(f"  Original: {original_result.word_count} words, {original_result.overall_confidence:.2%} confidence")
+        except Exception as e:
+            logger.warning(f"  Original failed: {e}")
+        
+        if not all_results:
+            # Fallback - return empty result
+            return OCRResult(
+                raw_text="",
+                cleaned_text="",
+                blocks=[],
+                overall_confidence=0.0,
+                content_type="unknown",
+                page_count=1,
+                processing_time_ms=0,
+                word_count=0,
+                low_confidence_regions=[],
+                metadata={"error": "All OCR attempts failed"}
+            )
+        
+        # Select best result based on confidence and word count
+        # Prefer higher word count when confidences are similar
+        best = max(all_results, key=lambda x: (x['confidence'] * 0.7 + min(x['word_count'] / 100, 0.3)))
+        best_result = best['result']
+        
+        logger.info(f"Selected version '{best['version']}' as best result")
+        
+        # Apply handwriting-specific corrections to the text
+        corrected_text, corrections = self.enhancer.correct_handwriting_errors(best_result.raw_text)
+        
+        if corrections:
+            logger.info(f"Applied {len(corrections)} handwriting corrections")
+        
+        # Update the result with corrected text
+        best_result.cleaned_text = corrected_text
+        best_result.metadata['enhancement_applied'] = True
+        best_result.metadata['best_version'] = best['version']
+        best_result.metadata['corrections'] = corrections
+        best_result.metadata['versions_tried'] = len(all_results)
+        
+        # Recalculate confidence based on corrections
+        confidence_factors = self.enhancer.get_confidence_factors(corrected_text, corrections)
+        best_result.metadata['confidence_factors'] = confidence_factors
+        
+        # Boost confidence if we successfully corrected known errors
+        if corrections:
+            # Small boost for successful corrections (validated against drug database)
+            drug_corrections = sum(1 for c in corrections if c.get('type') == 'drug_spelling')
+            if drug_corrections > 0:
+                best_result.overall_confidence = min(best_result.overall_confidence + 0.05, 0.98)
+        
+        return best_result
+    
+    def _process_pdf(self, file_path: Path, enhance_handwriting: bool = True) -> OCRResult:
+        """Process a multi-page PDF with optional enhancement"""
         doc = pymupdf.open(file_path)
         all_blocks = []
         all_text_parts = []
         total_confidence = 0
         confidence_count = 0
+        all_corrections = []
         
         for page_num in range(len(doc)):
             page = doc[page_num]
@@ -122,13 +222,21 @@ class OCRService:
             pix = page.get_pixmap(matrix=mat)
             img_bytes = pix.tobytes("png")
             
-            page_result = self._extract_text(img_bytes, page_num + 1)
+            if enhance_handwriting and self.enable_handwriting_enhancement:
+                page_result = self._extract_with_enhancement(img_bytes, page_num + 1)
+            else:
+                page_result = self._extract_text(img_bytes, page_num + 1)
+            
             all_blocks.extend(page_result.blocks)
-            all_text_parts.append(page_result.raw_text)
+            all_text_parts.append(page_result.cleaned_text or page_result.raw_text)
             
             if page_result.overall_confidence > 0:
                 total_confidence += page_result.overall_confidence
                 confidence_count += 1
+            
+            # Collect corrections from each page
+            if page_result.metadata.get('corrections'):
+                all_corrections.extend(page_result.metadata['corrections'])
         
         doc.close()
         
@@ -145,7 +253,13 @@ class OCRService:
             processing_time_ms=0,
             word_count=len(combined_text.split()),
             low_confidence_regions=[b for b in all_blocks if b.confidence < self.low_confidence_threshold],
-            metadata={"source_file": str(file_path), "file_type": "pdf"}
+            metadata={
+                "source_file": str(file_path), 
+                "file_type": "pdf",
+                "enhancement_applied": enhance_handwriting,
+                "total_corrections": len(all_corrections),
+                "corrections": all_corrections[:20]  # Limit stored corrections
+            }
         )
     
     def _extract_text(self, image_bytes: bytes, page_number: int = 1) -> OCRResult:

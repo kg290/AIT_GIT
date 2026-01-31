@@ -33,22 +33,97 @@ class TextCleaningService:
     """
     
     def __init__(self):
-        # Common OCR error patterns
+        # Common OCR error patterns (expanded for handwriting)
         self.ocr_corrections = {
             # Number/letter confusion
             '0': {'O', 'o'},
             '1': {'l', 'I', 'i', '|'},
             '5': {'S', 's'},
             '8': {'B'},
+            'Z': {'2'},
+            'G': {'6'},
             # Common OCR mistakes
             'rn': {'m'},
+            'nn': {'m'},
             'vv': {'w'},
             'cl': {'d'},
+            'cL': {'d'},
             'li': {'h'},
+            'lI': {'h'},
+            'ln': {'h'},
+            'ii': {'u'},
+            'll': {'u'},
+            'ri': {'n'},
+            'ni': {'n'},
             # Medical specific
             'rnl': {'ml'},
             'rng': {'mg'},
+            'rncg': {'mcg'},
             'iu': {'IU'},
+            'lU': {'IU'},
+        }
+        
+        # Handwriting-specific word corrections
+        self.handwriting_word_corrections = {
+            # Common medication OCR errors
+            'paracclamol': 'paracetamol',
+            'paracetarnol': 'paracetamol',
+            'arnoxicillin': 'amoxicillin',
+            'amoxiclllin': 'amoxicillin',
+            'lbuprofen': 'ibuprofen',
+            'ibuprofcn': 'ibuprofen',
+            'mctformin': 'metformin',
+            'metfonnin': 'metformin',
+            'orneprazole': 'omeprazole',
+            'omeprazo1e': 'omeprazole',
+            'azlthromycin': 'azithromycin',
+            'azithrornyc1n': 'azithromycin',
+            'ciprofloxacln': 'ciprofloxacin',
+            'clprofloxacin': 'ciprofloxacin',
+            'arnlodipine': 'amlodipine',
+            'amlodlpine': 'amlodipine',
+            'atorvastatln': 'atorvastatin',
+            'atorvastat1n': 'atorvastatin',
+            'losarlan': 'losartan',
+            'losattan': 'losartan',
+            'te1misartan': 'telmisartan',
+            'telmisattan': 'telmisartan',
+            'pantoprazo1e': 'pantoprazole',
+            'pantoprazolc': 'pantoprazole',
+            'monte1ukast': 'montelukast',
+            'cetirlzine': 'cetirizine',
+            'cctlrizine': 'cetirizine',
+            'prednisonc': 'prednisone',
+            'predmsonc': 'prednisone',
+            'doxycycllne': 'doxycycline',
+            'doxyeycline': 'doxycycline',
+            'clindarnycin': 'clindamycin',
+            'cl1ndamycin': 'clindamycin',
+            'gabapentln': 'gabapentin',
+            'gabapent1n': 'gabapentin',
+            'pregaba1in': 'pregabalin',
+            # Common instruction OCR errors
+            'rnorning': 'morning',
+            'aftemoon': 'afternoon',
+            'evemng': 'evening',
+            'nlght': 'night',
+            'tabIet': 'tablet',
+            'tabIets': 'tablets',
+            'capsuIe': 'capsule',
+            'capsuIes': 'capsules',
+            'daIly': 'daily',
+            'daity': 'daily',
+            'daiIy': 'daily',
+            'twlce': 'twice',
+            'twicc': 'twice',
+            'oncc': 'once',
+            'tirncs': 'times',
+            'tirnes': 'times',
+            'beforo': 'before',
+            'aftcr': 'after',
+            'meaIs': 'meals',
+            'foocl': 'food',
+            'watcr': 'water',
         }
         
         # Medical abbreviations dictionary
@@ -279,25 +354,56 @@ class TextCleaningService:
         return text
     
     def _fix_ocr_errors(self, text: str) -> Tuple[str, List[Dict]]:
-        """Fix common OCR errors"""
+        """Fix common OCR errors including handwriting-specific ones"""
         corrections = []
+        
+        # First apply handwriting word corrections
+        for error, fix in self.handwriting_word_corrections.items():
+            pattern = r'\b' + re.escape(error) + r'\b'
+            if re.search(pattern, text, re.IGNORECASE):
+                old_text = text
+                text = re.sub(pattern, fix, text, flags=re.IGNORECASE)
+                if old_text != text:
+                    corrections.append({
+                        'type': 'handwriting_word',
+                        'original': error,
+                        'corrected': fix,
+                        'reason': f'Handwriting OCR error: {error} → {fix}'
+                    })
         
         # Fix common number/unit patterns
         patterns = [
             # mg, ml corrections
-            (r'\b(\d+)\s*(rng|rnl)\b', r'\1 mg', 'OCR error: rng/rnl → mg'),
-            (r'\b(\d+)\s*rnl\b', r'\1 ml', 'OCR error: rnl → ml'),
+            (r'\b(\d+)\s*(rng|rnq)\b', r'\1 mg', 'OCR error: rng → mg'),
+            (r'\b(\d+)\s*(rnl)\b', r'\1 ml', 'OCR error: rnl → ml'),
+            (r'\b(\d+)\s*(rncg)\b', r'\1 mcg', 'OCR error: rncg → mcg'),
+            (r'\b(\d+)\s*lU\b', r'\1 IU', 'OCR error: lU → IU'),
             
             # Common word corrections
             (r'\brnorning\b', 'morning', 'OCR error: rnorning → morning'),
             (r'\baftemoon\b', 'afternoon', 'OCR error: aftemoon → afternoon'),
+            (r'\bevemng\b', 'evening', 'OCR error: evemng → evening'),
             (r'\btabIet\b', 'tablet', 'OCR error: tabIet → tablet'),
             (r'\bcapsuIe\b', 'capsule', 'OCR error: capsuIe → capsule'),
             
             # Number confusion in context
             (r'\b([0O])nce\b', 'once', 'OCR error: 0nce → once'),
             (r'\bda1ly\b', 'daily', 'OCR error: da1ly → daily'),
+            (r'\bdaIly\b', 'daily', 'OCR error: daIly → daily'),
             (r'\btwlce\b', 'twice', 'OCR error: twlce → twice'),
+            
+            # Frequency pattern fixes
+            (r'\b(\d+)\s*[xX]\s*(\d+)\s*[xX]\s*(\d+)\b', r'\1-\2-\3', 'Frequency format: 1x0x1 → 1-0-1'),
+            (r'\bOD\b(?!\s*\()', 'once daily', 'Abbreviation: OD → once daily'),
+            (r'\bBD\b(?!\s*\()', 'twice daily', 'Abbreviation: BD → twice daily'),
+            (r'\bTDS\b', 'three times daily', 'Abbreviation: TDS → three times daily'),
+            (r'\bQID\b', 'four times daily', 'Abbreviation: QID → four times daily'),
+            
+            # Meal-related fixes
+            (r'\bafter\s+meaIs\b', 'after meals', 'OCR error: meaIs → meals'),
+            (r'\bbefore\s+meaIs\b', 'before meals', 'OCR error: meaIs → meals'),
+            (r'\bwith\s+foocl\b', 'with food', 'OCR error: foocl → food'),
+            (r'\bempty\s+stornach\b', 'empty stomach', 'OCR error: stornach → stomach'),
         ]
         
         for pattern, replacement, reason in patterns:

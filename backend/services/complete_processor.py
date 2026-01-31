@@ -13,6 +13,7 @@ from pathlib import Path
 from backend.config import settings
 from backend.services.ocr_service import OCRService
 from backend.services.ai_extractor import AIExtractor, PrescriptionData, MedicationData
+from backend.services.text_cleaning_service import TextCleaningService
 from backend.services.drug_database import (
     find_all_interactions, find_allergy_alerts, 
     DrugInteraction, Severity
@@ -91,17 +92,19 @@ class ProcessingResult:
 class CompleteDocumentProcessor:
     """
     Full prescription processing pipeline:
-    1. OCR text extraction (Google Vision)
-    2. AI-powered data extraction (Gemini or regex fallback)
-    3. Drug interaction checking
-    4. Allergy alerts
-    5. Database persistence
-    6. Audit logging
+    1. OCR text extraction (Google Vision) with handwriting enhancement
+    2. Text cleaning and error correction
+    3. AI-powered data extraction (Gemini or regex fallback)
+    4. Drug interaction checking
+    5. Allergy alerts
+    6. Database persistence
+    7. Audit logging
     """
     
     def __init__(self, gemini_api_key: str = None):
         self.ocr_service = OCRService()
         self.ai_extractor = AIExtractor(api_key=gemini_api_key)
+        self.text_cleaner = TextCleaningService()
         
     def process(
         self,
@@ -147,15 +150,38 @@ class CompleteDocumentProcessor:
             
             logger.info(f"[{document_id}] OCR complete: {len(ocr_result.full_text)} chars, {ocr_result.confidence:.0%} confidence")
             
+            # Check for handwriting detection
+            is_handwritten = ocr_result.is_handwritten or ocr_result.has_mixed_content
+            if is_handwritten:
+                logger.info(f"[{document_id}] Handwritten content detected - applying enhanced cleaning")
+            
             if ocr_result.confidence < 0.5:
                 result.warnings.append(f"Low OCR quality: {ocr_result.confidence:.0%} confidence")
                 result.needs_review = True
                 result.review_reasons.append("Low OCR quality")
             
+            # ============ STEP 1.5: TEXT CLEANING ============
+            logger.info(f"[{document_id}] Cleaning OCR text...")
+            
+            cleaning_result = self.text_cleaner.clean_text(ocr_result.full_text)
+            cleaned_text = cleaning_result.cleaned_text
+            
+            if cleaning_result.corrections:
+                logger.info(f"[{document_id}] Applied {len(cleaning_result.corrections)} text corrections")
+                # Add to warnings so user knows corrections were made
+                for corr in cleaning_result.corrections[:5]:  # Show first 5
+                    result.warnings.append(f"Text corrected: {corr.get('original', '')} → {corr.get('corrected', '')}")
+            
+            if cleaning_result.unreadable_segments:
+                logger.warning(f"[{document_id}] Found {len(cleaning_result.unreadable_segments)} unreadable segments")
+                result.needs_review = True
+                result.review_reasons.append(f"{len(cleaning_result.unreadable_segments)} unreadable text segments")
+            
             # ============ STEP 2: AI EXTRACTION ============
             logger.info(f"[{document_id}] Starting AI extraction...")
             
-            extracted = self.ai_extractor.extract(ocr_result.full_text)
+            # Use cleaned text for extraction
+            extracted = self.ai_extractor.extract(cleaned_text)
             
             # Populate result from extraction - Patient Info
             result.patient_name = extracted.patient_name
