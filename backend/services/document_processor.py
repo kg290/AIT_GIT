@@ -22,7 +22,6 @@ from backend.services.drug_normalization_service import DrugNormalizationService
 from backend.services.prescription_structuring_service import PrescriptionStructuringService
 from backend.services.drug_interaction_service import DrugInteractionService
 from backend.services.temporal_reasoning_service import TemporalReasoningService
-from backend.services.knowledge_graph_service import KnowledgeGraphService
 from backend.services.audit_service import AuditService
 
 logger = logging.getLogger(__name__)
@@ -112,7 +111,6 @@ class DocumentProcessor:
         self.prescription_structuring = PrescriptionStructuringService()
         self.drug_interaction = DrugInteractionService()
         self.temporal_reasoning = TemporalReasoningService()
-        self.knowledge_graph = KnowledgeGraphService()
         self.audit = AuditService(db)
     
     def process_document(self, file_path: str, patient_id: str = None,
@@ -540,35 +538,6 @@ class DocumentProcessor:
             logger.error(f"Timeline integration failed: {e}")
             warnings.append(f"Timeline integration failed: {str(e)}")
             timeline_entries = []
-        
-        # ==================== Step 8: Knowledge Graph Update ====================
-        if patient_id:
-            reasoning_steps.append("Step 8: Updating knowledge graph")
-            
-            try:
-                # Create patient node if needed
-                self.knowledge_graph.create_patient_node(patient_id, {
-                    'last_updated': datetime.utcnow().isoformat()
-                })
-                
-                # Link medications
-                for med in normalized_medications:
-                    self.knowledge_graph.link_patient_medication(
-                        patient_id=patient_id,
-                        medication_name=med.get('generic_name') or med.get('original'),
-                        properties={'source_document': document_id}
-                    )
-                
-                # Link diagnoses
-                for dx in diagnoses:
-                    self.knowledge_graph.link_patient_condition(
-                        patient_id=patient_id,
-                        condition_name=dx.get('text', '')
-                    )
-                    
-            except Exception as e:
-                logger.error(f"Knowledge graph update failed: {e}")
-                warnings.append(f"Knowledge graph update failed: {str(e)}")
         
         # ==================== Build Confidence Explanation ====================
         confidence_explanation = {

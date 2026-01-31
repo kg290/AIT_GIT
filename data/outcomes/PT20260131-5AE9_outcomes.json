@@ -1,0 +1,14 @@
+[
+  {
+    "prescription_id": "RX-20260131053133",
+    "medication": "Crocin",
+    "started_at": "2026-01-31T05:31:33.027395",
+    "outcome_type": "improved",
+    "outcome_description": "improved",
+    "outcome_recorded_at": "2026-01-31T05:31:33.027400",
+    "vital_changes": [],
+    "effectiveness_score": 80,
+    "side_effects": [],
+    "follow_up_notes": null
+  }
+]

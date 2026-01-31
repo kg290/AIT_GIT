@@ -1,130 +1,27 @@
 """
-Neo4j-Style Knowledge Graph Visualization Service
-Builds interactive graph data for patient medical relationships
+Neo4j Visualization Service - Graph visualization for patient data
+Provides visualization data structure and Cypher export
 """
 import logging
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field, asdict
 from datetime import datetime
-import hashlib
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class GraphNode:
-    """Node in the knowledge graph"""
-    id: str
-    label: str
-    group: str  # patient, medication, condition, symptom, doctor, interaction
-    title: str  # Tooltip on hover
-    properties: Dict[str, Any] = field(default_factory=dict)
-    size: int = 25
-    
-    def to_vis_format(self) -> Dict:
-        """Convert to vis.js node format"""
-        colors = {
-            'patient': {'background': '#3b82f6', 'border': '#1d4ed8', 'highlight': '#60a5fa'},
-            'medication': {'background': '#10b981', 'border': '#047857', 'highlight': '#34d399'},
-            'condition': {'background': '#f59e0b', 'border': '#b45309', 'highlight': '#fbbf24'},
-            'symptom': {'background': '#ef4444', 'border': '#b91c1c', 'highlight': '#f87171'},
-            'doctor': {'background': '#8b5cf6', 'border': '#6d28d9', 'highlight': '#a78bfa'},
-            'interaction': {'background': '#ec4899', 'border': '#be185d', 'highlight': '#f472b6'},
-            'allergy': {'background': '#dc2626', 'border': '#991b1b', 'highlight': '#f87171'},
-            'lab_result': {'background': '#06b6d4', 'border': '#0891b2', 'highlight': '#22d3ee'},
-            'prescription': {'background': '#84cc16', 'border': '#4d7c0f', 'highlight': '#a3e635'},
-        }
-        
-        icons = {
-            'patient': '👤',
-            'medication': '💊',
-            'condition': '🏥',
-            'symptom': '🩺',
-            'doctor': '👨‍⚕️',
-            'interaction': '⚠️',
-            'allergy': '🚫',
-            'lab_result': '🔬',
-            'prescription': '📋',
-        }
-        
-        color = colors.get(self.group, {'background': '#6b7280', 'border': '#4b5563', 'highlight': '#9ca3af'})
-        icon = icons.get(self.group, '📌')
-        
-        return {
-            'id': self.id,
-            'label': f"{icon}\n{self.label}",
-            'group': self.group,
-            'title': self.title,
-            'color': color,
-            'size': self.size,
-            'font': {'size': 12, 'color': '#1f2937', 'face': 'Inter, sans-serif'},
-            'shape': 'dot',
-            'borderWidth': 3,
-            'shadow': True,
-        }
-
-
-@dataclass
-class GraphEdge:
-    """Edge/relationship in the knowledge graph"""
-    id: str
-    from_node: str
-    to_node: str
-    label: str
-    relationship_type: str
-    properties: Dict[str, Any] = field(default_factory=dict)
-    width: int = 2
-    dashes: bool = False
-    
-    def to_vis_format(self) -> Dict:
-        """Convert to vis.js edge format"""
-        colors = {
-            'takes': '#10b981',
-            'has_condition': '#f59e0b',
-            'treats': '#3b82f6',
-            'interacts_with': '#ef4444',
-            'prescribed_by': '#8b5cf6',
-            'allergic_to': '#dc2626',
-            'has_symptom': '#ec4899',
-            'causes': '#f97316',
-            'monitors': '#06b6d4',
-            'contraindicated': '#be123c',
-        }
-        
-        return {
-            'id': self.id,
-            'from': self.from_node,
-            'to': self.to_node,
-            'label': self.label,
-            'color': {'color': colors.get(self.relationship_type, '#6b7280'), 'highlight': '#1f2937'},
-            'width': self.width,
-            'dashes': self.dashes,
-            'font': {'size': 10, 'align': 'middle', 'color': '#4b5563'},
-            'arrows': {'to': {'enabled': True, 'scaleFactor': 0.5}},
-            'smooth': {'type': 'curvedCW', 'roundness': 0.2},
-        }
-
-
 class Neo4jVisualizationService:
     """
-    Service to build Neo4j-style knowledge graph visualizations
-    Works with in-memory data or can connect to actual Neo4j
+    Service for building graph visualization data and Neo4j export
     """
     
     def __init__(self):
-        self.nodes: Dict[str, GraphNode] = {}
-        self.edges: Dict[str, GraphEdge] = {}
-    
-    def _generate_id(self, prefix: str, name: str) -> str:
-        """Generate unique ID for nodes"""
-        hash_val = hashlib.md5(name.lower().encode()).hexdigest()[:8]
-        return f"{prefix}_{hash_val}"
+        self._patient_graphs: Dict[str, Dict] = {}
     
     def build_patient_graph(
         self,
         patient_uid: str,
         patient_data: Dict,
-        medications: List[Dict],
+        medications: List[Dict] = None,
         conditions: List[str] = None,
         allergies: List[str] = None,
         interactions: List[Dict] = None,
@@ -132,407 +29,292 @@ class Neo4jVisualizationService:
         include_drug_relationships: bool = True
     ) -> Dict:
         """
-        Build complete knowledge graph for a patient
+        Build a graph visualization structure for a patient
         
-        Args:
-            patient_uid: Patient unique ID
-            patient_data: Patient demographics
-            medications: List of medication dicts
-            conditions: List of condition names
-            allergies: List of allergy names
-            interactions: Drug interaction data
-            prescriptions: List of prescription dicts with dates
-            include_drug_relationships: Include drug-condition relationships
-        
-        Returns:
-            Dict with nodes and edges in vis.js format
+        Returns a structure suitable for visualization libraries like D3.js or vis.js
         """
-        self.nodes = {}
-        self.edges = {}
-        conditions = conditions or []
-        allergies = allergies or []
-        interactions = interactions or []
-        prescriptions = prescriptions or []
+        nodes = []
+        edges = []
+        node_id_counter = 1
+        node_map = {}  # name -> id mapping
         
-        # 1. Create patient node (center)
-        patient_name = patient_data.get('name', 'Unknown Patient')
-        patient_node = GraphNode(
-            id=f"patient_{patient_uid}",
-            label=patient_name,
-            group='patient',
-            title=f"<b>{patient_name}</b><br>UID: {patient_uid}<br>Age: {patient_data.get('age', 'N/A')}<br>Gender: {patient_data.get('gender', 'N/A')}",
-            size=40,
-            properties=patient_data
-        )
-        self.nodes[patient_node.id] = patient_node
+        # Patient node (central)
+        patient_node_id = f"patient_{patient_uid}"
+        nodes.append({
+            "id": patient_node_id,
+            "label": patient_data.get("name", "Patient"),
+            "type": "patient",
+            "group": "patient",
+            "properties": {
+                "uid": patient_uid,
+                "age": patient_data.get("age"),
+                "gender": patient_data.get("gender"),
+                "blood_group": patient_data.get("blood_group")
+            },
+            "size": 40,
+            "color": "#4F46E5"  # Indigo for patient
+        })
+        node_map["patient"] = patient_node_id
         
-        # 2. Create medication nodes
-        for med in medications:
-            med_name = med.get('name') or med.get('drug_name') or med.get('medication', 'Unknown')
-            if not med_name or med_name == 'Unknown':
-                continue
-                
-            med_id = self._generate_id('med', med_name)
+        # Medication nodes
+        for med in (medications or []):
+            med_name = med.get("name") or med.get("drug_name", "Unknown")
+            med_id = f"med_{med_name.lower().replace(' ', '_')}"
             
-            # Build tooltip with dates
-            dosage = med.get('dosage', '')
-            frequency = med.get('frequency', '')
-            start_date = med.get('start_date', '')
-            end_date = med.get('end_date', '')
-            is_active = med.get('is_active', True)
-            prescriber = med.get('prescriber', '')
+            if med_id not in node_map:
+                nodes.append({
+                    "id": med_id,
+                    "label": med_name,
+                    "type": "medication",
+                    "group": "medication",
+                    "properties": {
+                        "dosage": med.get("dosage"),
+                        "frequency": med.get("frequency"),
+                        "route": med.get("route")
+                    },
+                    "size": 25,
+                    "color": "#10B981"  # Green for medications
+                })
+                node_map[med_id] = med_id
             
-            tooltip = f"<b>💊 {med_name}</b>"
-            if dosage:
-                tooltip += f"<br><b>Dosage:</b> {dosage}"
-            if frequency:
-                tooltip += f"<br><b>Frequency:</b> {frequency}"
-            if start_date:
-                # Format date nicely
-                try:
-                    if isinstance(start_date, str):
-                        from dateutil import parser
-                        start_dt = parser.parse(start_date)
-                        tooltip += f"<br><b>Started:</b> {start_dt.strftime('%d %b %Y')}"
-                    else:
-                        tooltip += f"<br><b>Started:</b> {start_date.strftime('%d %b %Y')}"
-                except:
-                    tooltip += f"<br><b>Started:</b> {start_date}"
-            if end_date:
-                try:
-                    if isinstance(end_date, str):
-                        from dateutil import parser
-                        end_dt = parser.parse(end_date)
-                        tooltip += f"<br><b>Ended:</b> {end_dt.strftime('%d %b %Y')}"
-                    else:
-                        tooltip += f"<br><b>Ended:</b> {end_date.strftime('%d %b %Y')}"
-                except:
-                    tooltip += f"<br><b>Ended:</b> {end_date}"
-            if prescriber:
-                tooltip += f"<br><b>Prescribed by:</b> Dr. {prescriber}"
-            
-            # Status indicator
-            status = "✅ Active" if is_active else "⏹️ Stopped"
-            tooltip += f"<br><b>Status:</b> {status}"
-            
-            med_node = GraphNode(
-                id=med_id,
-                label=med_name[:20],
-                group='medication',
-                title=tooltip,
-                size=30,
-                properties=med
-            )
-            self.nodes[med_id] = med_node
-            
-            # Create edge: patient TAKES medication
-            edge_id = f"edge_takes_{patient_uid}_{med_id}"
-            self.edges[edge_id] = GraphEdge(
-                id=edge_id,
-                from_node=patient_node.id,
-                to_node=med_id,
-                label='takes',
-                relationship_type='takes',
-                width=3
-            )
+            # Edge: Patient -> Medication (TAKES)
+            edges.append({
+                "id": f"edge_{patient_node_id}_{med_id}",
+                "source": patient_node_id,
+                "target": med_id,
+                "label": "TAKES",
+                "type": "takes",
+                "properties": {
+                    "dosage": med.get("dosage"),
+                    "frequency": med.get("frequency")
+                }
+            })
         
-        # 3. Create condition nodes
-        for condition in conditions:
+        # Condition nodes
+        for condition in (conditions or []):
             if not condition:
                 continue
-            cond_id = self._generate_id('cond', condition)
+            cond_id = f"cond_{condition.lower().replace(' ', '_')}"
             
-            cond_node = GraphNode(
-                id=cond_id,
-                label=condition[:25],
-                group='condition',
-                title=f"<b>Condition</b><br>{condition}",
-                size=28
-            )
-            self.nodes[cond_id] = cond_node
+            if cond_id not in node_map:
+                nodes.append({
+                    "id": cond_id,
+                    "label": condition,
+                    "type": "condition",
+                    "group": "condition",
+                    "properties": {},
+                    "size": 25,
+                    "color": "#F59E0B"  # Amber for conditions
+                })
+                node_map[cond_id] = cond_id
             
-            # Edge: patient HAS_CONDITION condition
-            edge_id = f"edge_has_{patient_uid}_{cond_id}"
-            self.edges[edge_id] = GraphEdge(
-                id=edge_id,
-                from_node=patient_node.id,
-                to_node=cond_id,
-                label='has',
-                relationship_type='has_condition',
-                width=2
-            )
-            
-            # 4. Link medications that treat this condition
-            if include_drug_relationships:
-                for med_id, med_node in list(self.nodes.items()):
-                    if med_node.group == 'medication':
-                        med_name = med_node.properties.get('name', '').lower()
-                        if self._medication_treats_condition(med_name, condition.lower()):
-                            treat_edge_id = f"edge_treats_{med_id}_{cond_id}"
-                            if treat_edge_id not in self.edges:
-                                self.edges[treat_edge_id] = GraphEdge(
-                                    id=treat_edge_id,
-                                    from_node=med_id,
-                                    to_node=cond_id,
-                                    label='treats',
-                                    relationship_type='treats',
-                                    width=2,
-                                    dashes=True
-                                )
+            # Edge: Patient -> Condition (HAS_CONDITION)
+            edges.append({
+                "id": f"edge_{patient_node_id}_{cond_id}",
+                "source": patient_node_id,
+                "target": cond_id,
+                "label": "HAS_CONDITION",
+                "type": "has_condition"
+            })
         
-        # 5. Create allergy nodes
-        for allergy in allergies:
+        # Allergy nodes
+        for allergy in (allergies or []):
             if not allergy:
                 continue
-            allergy_id = self._generate_id('allergy', allergy)
+            allergy_id = f"allergy_{allergy.lower().replace(' ', '_')}"
             
-            allergy_node = GraphNode(
-                id=allergy_id,
-                label=allergy[:20],
-                group='allergy',
-                title=f"<b>⚠️ Allergy</b><br>{allergy}",
-                size=25
-            )
-            self.nodes[allergy_id] = allergy_node
+            if allergy_id not in node_map:
+                nodes.append({
+                    "id": allergy_id,
+                    "label": allergy,
+                    "type": "allergy",
+                    "group": "allergy",
+                    "properties": {},
+                    "size": 20,
+                    "color": "#EF4444"  # Red for allergies
+                })
+                node_map[allergy_id] = allergy_id
             
-            # Edge: patient ALLERGIC_TO
-            edge_id = f"edge_allergic_{patient_uid}_{allergy_id}"
-            self.edges[edge_id] = GraphEdge(
-                id=edge_id,
-                from_node=patient_node.id,
-                to_node=allergy_id,
-                label='allergic',
-                relationship_type='allergic_to',
-                width=3,
-                dashes=True
-            )
+            # Edge: Patient -> Allergy (ALLERGIC_TO)
+            edges.append({
+                "id": f"edge_{patient_node_id}_{allergy_id}",
+                "source": patient_node_id,
+                "target": allergy_id,
+                "label": "ALLERGIC_TO",
+                "type": "allergic_to"
+            })
         
-        # 6. Create drug interaction nodes and edges
-        for interaction in interactions:
-            if not interaction:
-                continue
+        # Interaction edges (between medications)
+        for interaction in (interactions or []):
+            drug1 = interaction.get("drug1", "")
+            drug2 = interaction.get("drug2", "")
+            severity = interaction.get("severity", "unknown")
             
-            drug1 = interaction.get('drug1', '')
-            drug2 = interaction.get('drug2', '')
-            severity = interaction.get('severity', 'moderate')
-            description = interaction.get('description', '')
+            drug1_id = f"med_{drug1.lower().replace(' ', '_')}"
+            drug2_id = f"med_{drug2.lower().replace(' ', '_')}"
             
-            if not drug1 or not drug2:
-                continue
-            
-            # Find corresponding medication nodes
-            drug1_id = self._generate_id('med', drug1)
-            drug2_id = self._generate_id('med', drug2)
-            
-            # Create interaction node
-            interaction_id = self._generate_id('interaction', f"{drug1}_{drug2}")
-            interaction_node = GraphNode(
-                id=interaction_id,
-                label=f"⚠️ {severity.upper()}",
-                group='interaction',
-                title=f"<b>Drug Interaction</b><br>{drug1} ↔ {drug2}<br>Severity: {severity}<br>{description}",
-                size=22,
-                properties=interaction
-            )
-            self.nodes[interaction_id] = interaction_node
-            
-            # Connect both drugs to interaction
-            if drug1_id in self.nodes:
-                self.edges[f"edge_int_{drug1_id}_{interaction_id}"] = GraphEdge(
-                    id=f"edge_int_{drug1_id}_{interaction_id}",
-                    from_node=drug1_id,
-                    to_node=interaction_id,
-                    label='interacts',
-                    relationship_type='interacts_with',
-                    width=3
-                )
-            if drug2_id in self.nodes:
-                self.edges[f"edge_int_{drug2_id}_{interaction_id}"] = GraphEdge(
-                    id=f"edge_int_{drug2_id}_{interaction_id}",
-                    from_node=drug2_id,
-                    to_node=interaction_id,
-                    label='interacts',
-                    relationship_type='interacts_with',
-                    width=3
-                )
+            if drug1_id in node_map and drug2_id in node_map:
+                edges.append({
+                    "id": f"edge_interaction_{drug1_id}_{drug2_id}",
+                    "source": drug1_id,
+                    "target": drug2_id,
+                    "label": "INTERACTS_WITH",
+                    "type": "interaction",
+                    "properties": {
+                        "severity": severity,
+                        "description": interaction.get("description")
+                    },
+                    "color": "#EF4444" if severity in ["major", "severe"] else "#F59E0B"
+                })
         
-        # 7. Create prescription nodes (timeline)
-        for presc in prescriptions:
-            if not presc:
-                continue
+        # Prescription nodes (optional)
+        for rx in (prescriptions or []):
+            rx_id = rx.get("prescription_id") or rx.get("id")
+            if rx_id:
+                rx_node_id = f"rx_{rx_id}"
+                nodes.append({
+                    "id": rx_node_id,
+                    "label": f"Rx #{rx_id}",
+                    "type": "prescription",
+                    "group": "prescription",
+                    "properties": {
+                        "date": rx.get("date"),
+                        "doctor": rx.get("doctor")
+                    },
+                    "size": 20,
+                    "color": "#8B5CF6"  # Purple for prescriptions
+                })
                 
-            presc_uid = presc.get('prescription_uid', '')
-            presc_date = presc.get('prescription_date', '')
-            doctor_name = presc.get('doctor_name', 'Unknown Doctor')
-            clinic = presc.get('clinic_name', '')
-            presc_meds = presc.get('medications', [])
-            
-            if not presc_uid:
-                continue
-            
-            presc_id = f"presc_{presc_uid}"
-            
-            # Format date for display
-            date_display = 'Unknown Date'
-            try:
-                if presc_date:
-                    if isinstance(presc_date, str):
-                        from dateutil import parser
-                        presc_dt = parser.parse(presc_date)
-                        date_display = presc_dt.strftime('%d %b %Y')
-                    else:
-                        date_display = presc_date.strftime('%d %b %Y')
-            except:
-                date_display = str(presc_date)[:10] if presc_date else 'Unknown Date'
-            
-            # Build tooltip
-            tooltip = f"<b>📋 Prescription</b><br><b>ID:</b> {presc_uid}"
-            tooltip += f"<br><b>Date:</b> {date_display}"
-            tooltip += f"<br><b>Doctor:</b> Dr. {doctor_name}"
-            if clinic:
-                tooltip += f"<br><b>Clinic:</b> {clinic}"
-            if presc_meds:
-                tooltip += f"<br><b>Medications:</b> {len(presc_meds)}"
-                for pm in presc_meds[:3]:  # Show first 3 meds
-                    pm_name = pm.get('name', '')
-                    pm_dosage = pm.get('dosage', '')
-                    if pm_name:
-                        tooltip += f"<br>  • {pm_name}"
-                        if pm_dosage:
-                            tooltip += f" ({pm_dosage})"
-                if len(presc_meds) > 3:
-                    tooltip += f"<br>  ... and {len(presc_meds) - 3} more"
-            
-            presc_node = GraphNode(
-                id=presc_id,
-                label=f"Rx {date_display}",
-                group='prescription',
-                title=tooltip,
-                size=28,
-                properties=presc
-            )
-            self.nodes[presc_id] = presc_node
-            
-            # Edge: patient HAS prescription
-            edge_id = f"edge_has_presc_{patient_uid}_{presc_id}"
-            self.edges[edge_id] = GraphEdge(
-                id=edge_id,
-                from_node=patient_node.id,
-                to_node=presc_id,
-                label='received',
-                relationship_type='has_prescription',
-                width=2
-            )
-            
-            # Link prescription to medications it contains
-            for pm in presc_meds:
-                pm_name = pm.get('name', '')
-                if pm_name:
-                    pm_id = self._generate_id('med', pm_name)
-                    if pm_id in self.nodes:
-                        edge_id = f"edge_presc_med_{presc_id}_{pm_id}"
-                        if edge_id not in self.edges:
-                            self.edges[edge_id] = GraphEdge(
-                                id=edge_id,
-                                from_node=presc_id,
-                                to_node=pm_id,
-                                label='includes',
-                                relationship_type='includes',
-                                width=2,
-                                dashes=True
-                            )
+                edges.append({
+                    "id": f"edge_{patient_node_id}_{rx_node_id}",
+                    "source": patient_node_id,
+                    "target": rx_node_id,
+                    "label": "HAS_PRESCRIPTION",
+                    "type": "has_prescription"
+                })
         
-        # Convert to vis.js format
-        return self._to_vis_format()
-    
-    def _medication_treats_condition(self, medication: str, condition: str) -> bool:
-        """Check if medication commonly treats condition"""
-        treatment_map = {
-            # Diabetes
-            'diabetes': ['metformin', 'glipizide', 'glyburide', 'insulin', 'glimepiride', 'sitagliptin', 
-                        'empagliflozin', 'jardiance', 'ozempic', 'semaglutide', 'trulicity'],
-            'hypertension': ['lisinopril', 'amlodipine', 'losartan', 'metoprolol', 'hydrochlorothiazide',
-                           'valsartan', 'atenolol', 'carvedilol', 'olmesartan', 'telmisartan'],
-            'high blood pressure': ['lisinopril', 'amlodipine', 'losartan', 'metoprolol'],
-            'heart failure': ['carvedilol', 'metoprolol', 'lisinopril', 'spironolactone', 'entresto',
-                             'sacubitril', 'furosemide', 'digoxin'],
-            'atrial fibrillation': ['warfarin', 'apixaban', 'rivaroxaban', 'eliquis', 'xarelto',
-                                   'metoprolol', 'diltiazem', 'amiodarone', 'digoxin'],
-            'cholesterol': ['atorvastatin', 'simvastatin', 'rosuvastatin', 'lipitor', 'crestor',
-                          'pravastatin', 'ezetimibe'],
-            'hyperlipidemia': ['atorvastatin', 'simvastatin', 'rosuvastatin'],
-            'pain': ['ibuprofen', 'acetaminophen', 'naproxen', 'tramadol', 'morphine', 'oxycodone',
-                    'hydrocodone', 'gabapentin', 'pregabalin'],
-            'depression': ['sertraline', 'fluoxetine', 'escitalopram', 'citalopram', 'venlafaxine',
-                          'duloxetine', 'bupropion', 'lexapro', 'zoloft'],
-            'anxiety': ['sertraline', 'escitalopram', 'buspirone', 'lorazepam', 'alprazolam'],
-            'asthma': ['albuterol', 'fluticasone', 'montelukast', 'budesonide', 'salmeterol'],
-            'copd': ['tiotropium', 'spiriva', 'albuterol', 'fluticasone', 'symbicort'],
-            'gerd': ['omeprazole', 'pantoprazole', 'esomeprazole', 'ranitidine', 'famotidine'],
-            'acid reflux': ['omeprazole', 'pantoprazole', 'esomeprazole'],
-            'infection': ['amoxicillin', 'azithromycin', 'ciprofloxacin', 'doxycycline', 'cephalexin'],
-            'thyroid': ['levothyroxine', 'synthroid', 'methimazole'],
-        }
+        # Build drug-condition relationships if requested
+        if include_drug_relationships:
+            drug_condition_map = self._get_drug_condition_relationships()
+            for med in (medications or []):
+                med_name = (med.get("name") or med.get("drug_name", "")).lower()
+                med_id = f"med_{med_name.replace(' ', '_')}"
+                
+                for cond_name, treating_drugs in drug_condition_map.items():
+                    if med_name in [d.lower() for d in treating_drugs]:
+                        cond_id = f"cond_{cond_name.lower().replace(' ', '_')}"
+                        if cond_id in node_map:
+                            edges.append({
+                                "id": f"edge_treats_{med_id}_{cond_id}",
+                                "source": med_id,
+                                "target": cond_id,
+                                "label": "TREATS",
+                                "type": "treats",
+                                "color": "#10B981"
+                            })
         
-        for cond_keyword, meds in treatment_map.items():
-            if cond_keyword in condition:
-                for med in meds:
-                    if med in medication:
-                        return True
-        return False
-    
-    def _to_vis_format(self) -> Dict:
-        """Convert internal representation to vis.js format"""
-        return {
-            'nodes': [node.to_vis_format() for node in self.nodes.values()],
-            'edges': [edge.to_vis_format() for edge in self.edges.values()],
-            'statistics': {
-                'total_nodes': len(self.nodes),
-                'total_edges': len(self.edges),
-                'node_types': self._count_by_group(),
-                'generated_at': datetime.utcnow().isoformat()
+        graph_data = {
+            "nodes": nodes,
+            "edges": edges,
+            "patient_uid": patient_uid,
+            "patient_name": patient_data.get("name"),
+            "stats": {
+                "total_nodes": len(nodes),
+                "total_edges": len(edges),
+                "medications": len([n for n in nodes if n["type"] == "medication"]),
+                "conditions": len([n for n in nodes if n["type"] == "condition"]),
+                "allergies": len([n for n in nodes if n["type"] == "allergy"]),
+                "interactions": len([e for e in edges if e["type"] == "interaction"])
             }
         }
+        
+        # Cache the graph
+        self._patient_graphs[patient_uid] = graph_data
+        
+        return graph_data
     
-    def _count_by_group(self) -> Dict[str, int]:
-        """Count nodes by group type"""
-        counts = {}
-        for node in self.nodes.values():
-            counts[node.group] = counts.get(node.group, 0) + 1
-        return counts
+    def _get_drug_condition_relationships(self) -> Dict[str, List[str]]:
+        """Get mapping of conditions to drugs that treat them"""
+        return {
+            "type 2 diabetes": ["metformin", "glipizide", "sitagliptin", "insulin"],
+            "hypertension": ["lisinopril", "amlodipine", "losartan", "metoprolol", "hydrochlorothiazide"],
+            "hyperlipidemia": ["atorvastatin", "rosuvastatin", "simvastatin", "pravastatin"],
+            "coronary artery disease": ["aspirin", "clopidogrel", "atorvastatin", "metoprolol"],
+            "atrial fibrillation": ["warfarin", "apixaban", "rivaroxaban", "metoprolol"],
+            "heart failure": ["lisinopril", "carvedilol", "furosemide", "spironolactone"],
+            "copd": ["albuterol", "tiotropium", "fluticasone", "budesonide"],
+            "asthma": ["albuterol", "fluticasone", "montelukast", "budesonide"],
+            "depression": ["sertraline", "fluoxetine", "escitalopram", "bupropion"],
+            "anxiety": ["sertraline", "buspirone", "escitalopram", "lorazepam"],
+            "hypothyroidism": ["levothyroxine"],
+            "gerd": ["omeprazole", "pantoprazole", "famotidine", "ranitidine"],
+            "osteoporosis": ["alendronate", "risedronate", "calcium", "vitamin d"],
+            "rheumatoid arthritis": ["methotrexate", "prednisone", "adalimumab", "etanercept"],
+            "chronic kidney disease": ["lisinopril", "losartan", "sodium bicarbonate"],
+        }
     
     def export_cypher(self, patient_uid: str) -> str:
         """
-        Export graph as Neo4j Cypher statements
-        Can be used to import into actual Neo4j database
+        Export the patient graph as Cypher statements for Neo4j import
         """
-        statements = ["// Neo4j Cypher Import Script", f"// Patient: {patient_uid}", ""]
+        graph = self._patient_graphs.get(patient_uid)
+        if not graph:
+            return "// No graph data available for this patient"
         
-        # Create nodes
-        for node in self.nodes.values():
-            props = ', '.join([f'{k}: "{v}"' for k, v in node.properties.items() if isinstance(v, str)])
-            statements.append(
-                f"CREATE (n:{node.group.capitalize()} {{id: '{node.id}', label: '{node.label}', {props}}});"
+        cypher_lines = [
+            "// Neo4j Cypher Export",
+            f"// Patient: {graph.get('patient_name', patient_uid)}",
+            f"// Generated: {datetime.now().isoformat()}",
+            "",
+            "// Create nodes"
+        ]
+        
+        # Create node statements
+        for node in graph.get("nodes", []):
+            node_type = node["type"].capitalize()
+            props = {
+                "id": node["id"],
+                "name": node["label"],
+                **node.get("properties", {})
+            }
+            # Filter out None values
+            props = {k: v for k, v in props.items() if v is not None}
+            props_str = ", ".join([f'{k}: "{v}"' if isinstance(v, str) else f'{k}: {v}' 
+                                   for k, v in props.items()])
+            cypher_lines.append(f"CREATE (:{node_type} {{{props_str}}})")
+        
+        cypher_lines.append("")
+        cypher_lines.append("// Create relationships")
+        
+        # Create relationship statements
+        for edge in graph.get("edges", []):
+            rel_type = edge["label"].upper().replace(" ", "_")
+            cypher_lines.append(
+                f'MATCH (a {{id: "{edge["source"]}"}}), (b {{id: "{edge["target"]}"}}) '
+                f'CREATE (a)-[:{rel_type}]->(b)'
             )
         
-        statements.append("")
-        
-        # Create relationships
-        for edge in self.edges.values():
-            statements.append(
-                f"MATCH (a {{id: '{edge.from_node}'}}), (b {{id: '{edge.to_node}'}}) "
-                f"CREATE (a)-[:{edge.relationship_type.upper()} {{label: '{edge.label}'}}]->(b);"
-            )
-        
-        return '\n'.join(statements)
+        return "\n".join(cypher_lines)
+    
+    def get_graph(self, patient_uid: str) -> Optional[Dict]:
+        """Get cached graph for a patient"""
+        return self._patient_graphs.get(patient_uid)
+    
+    def clear_cache(self, patient_uid: str = None):
+        """Clear cached graphs"""
+        if patient_uid:
+            self._patient_graphs.pop(patient_uid, None)
+        else:
+            self._patient_graphs.clear()
 
 
 # Singleton instance
-_visualization_service = None
+_viz_service: Optional[Neo4jVisualizationService] = None
+
 
 def get_neo4j_visualization_service() -> Neo4jVisualizationService:
-    """Get or create visualization service singleton"""
-    global _visualization_service
-    if _visualization_service is None:
-        _visualization_service = Neo4jVisualizationService()
-    return _visualization_service
+    """Get or create the visualization service singleton"""
+    global _viz_service
+    if _viz_service is None:
+        _viz_service = Neo4jVisualizationService()
+    return _viz_service

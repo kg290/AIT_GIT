@@ -6,7 +6,6 @@ from typing import List, Optional
 from datetime import datetime
 
 from backend.services import (
-    KnowledgeGraphService,
     TemporalReasoningService,
     DrugInteractionService
 )
@@ -55,14 +54,6 @@ async def create_patient(
     else:
         # Create new
         patient_store[patient_id] = patient_data
-    
-    # Update knowledge graph
-    kg = KnowledgeGraphService()
-    kg.create_patient_node(patient_id, {'name': name})
-    
-    if chronic_conditions:
-        for condition in chronic_conditions:
-            kg.link_patient_condition(patient_id, condition)
     
     return patient_store[patient_id]
 
@@ -141,10 +132,6 @@ async def add_patient_medication(
     
     patient_store[patient_id]['current_medications'].append(medication)
     patient_store[patient_id]['updated_at'] = datetime.utcnow().isoformat()
-    
-    # Update knowledge graph
-    kg = KnowledgeGraphService()
-    kg.link_patient_medication(patient_id, medication_name)
     
     return {'success': True, 'medication': medication}
 
@@ -273,17 +260,6 @@ async def get_patient_timeline(
         'timeline': sorted_timeline,
         'total_events': len(timeline)
     }
-
-
-@router.get("/{patient_id}/graph")
-async def get_patient_knowledge_graph(patient_id: str):
-    """
-    Get patient's knowledge graph (nodes and relationships)
-    """
-    kg = KnowledgeGraphService()
-    graph = kg.get_patient_graph(patient_id)
-    
-    return graph
 
 
 @router.post("/{patient_id}/allergies")

@@ -122,7 +122,7 @@ async def decode_qr_code(
         
         if patient:
             summary = service.get_patient_summary(patient_uid)
-            active_meds = summary.get('active_medications', []) if summary else []
+            active_meds = summary.get('current_medications', []) if summary else []
             
             return JSONResponse(content={
                 'success': True,
@@ -349,8 +349,8 @@ async def get_patient_by_uid(patient_uid: str):
         
         # Get active medications
         active_meds = []
-        if summary and summary.get('active_medications'):
-            active_meds = summary.get('active_medications', [])
+        if summary and summary.get('current_medications'):
+            active_meds = summary.get('current_medications', [])
         
         return JSONResponse(content={
             'success': True,
@@ -448,7 +448,7 @@ async def add_prescription_to_patient(
                 'phone': patient.get('phone'),
                 'allergies': patient.get('allergies', []),
                 'prescriptions_count': summary.get('total_prescriptions', 0) if summary else 1,
-                'active_medications': summary.get('active_medications', []) if summary else []
+                'active_medications': summary.get('current_medications', []) if summary else []
             },
             'prescription': {
                 'prescription_id': add_result.get('prescription_uid'),
@@ -589,7 +589,7 @@ async def add_multiple_prescriptions(
                 'uid': patient_uid,
                 'name': patient.get('name') or f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip(),
                 'prescriptions_count': summary.get('total_prescriptions', 0) if summary else len(results),
-                'active_medications': summary.get('active_medications', []) if summary else []
+                'active_medications': summary.get('current_medications', []) if summary else []
             },
             'prescriptions': results,
             'errors': errors
@@ -827,7 +827,7 @@ async def get_patient_full_details(patient_uid: str):
         timeline = service.get_patient_timeline(patient_uid, limit=50)
         
         # Get active medications
-        active_meds = summary.get('active_medications', []) if summary else []
+        active_meds = summary.get('current_medications', []) if summary else []
         
         return JSONResponse(content={
             'success': True,
@@ -911,7 +911,7 @@ async def doctor_scan_qr(
         summary = service.get_patient_summary(patient_uid)
         prescriptions = service.get_patient_prescriptions(patient_uid)
         timeline = service.get_patient_timeline(patient_uid, limit=50)
-        active_meds = summary.get('active_medications', []) if summary else []
+        active_meds = summary.get('current_medications', []) if summary else []
         
         return JSONResponse(content={
             'success': True,
@@ -964,7 +964,7 @@ async def get_patient_ai_context(patient_uid: str):
         
         summary = service.get_patient_summary(patient_uid)
         prescriptions = service.get_patient_prescriptions(patient_uid)
-        active_meds = summary.get('active_medications', []) if summary else []
+        active_meds = summary.get('current_medications', []) if summary else []
         
         # Build AI-friendly context
         ai_context = {
@@ -1460,61 +1460,6 @@ async def get_outcome_timeline(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/patient/{patient_uid}/treatment-prediction")
-async def get_treatment_prediction(
-    patient_uid: str,
-    medication: str,
-    condition: Optional[str] = None
-):
-    """
-    Get ML-based treatment success prediction.
-    
-    Predicts likelihood of treatment success based on:
-    - Patient profile and history
-    - Historical outcome data from similar patients
-    - Known success/failure factors
-    """
-    try:
-        patient_service = get_unified_patient_service()
-        
-        patient = patient_service.get_patient_by_uid(patient_uid)
-        if not patient:
-            raise HTTPException(status_code=404, detail=f"Patient {patient_uid} not found")
-        
-        # Build patient profile
-        conditions = patient.get('conditions', [])
-        patient_profile = {
-            'age': patient.get('age', 50),
-            'gender': patient.get('gender', 'unknown'),
-            'bmi': patient.get('bmi', 25),
-            'conditions': conditions,
-            'smoker': patient.get('smoker', False),
-            'adherence_rate': patient.get('adherence_rate', 0.7)
-        }
-        
-        # Use provided condition or first from patient's conditions
-        target_condition = condition or (conditions[0] if conditions else 'general')
-        
-        # Get prediction
-        prediction = treatment_outcome_service.predict_treatment_success(
-            medication=medication,
-            condition=target_condition,
-            patient_profile=patient_profile
-        )
-        
-        return JSONResponse(content={
-            'success': True,
-            'patient_uid': patient_uid,
-            'prediction': prediction.to_dict()
-        })
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get treatment prediction: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/patient/{patient_uid}/comprehensive-outcome-report")
 async def get_comprehensive_outcome_report(
     patient_uid: str
@@ -1524,7 +1469,6 @@ async def get_comprehensive_outcome_report(
     
     Combines:
     - Outcome timeline
-    - Treatment predictions for all current medications
     - Vital sign trend analysis
     - Actionable insights
     """

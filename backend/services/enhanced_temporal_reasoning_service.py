@@ -10,7 +10,7 @@ from sqlalchemy import and_, or_, desc
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-from backend.models.knowledge_graph import PatientMedicationHistory, VisitSummary
+from backend.models.patient_history import PatientMedicationHistory, VisitSummary
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
 
 from backend.models.patient import Patient
-from backend.models.knowledge_graph import (
+from backend.models.patient_history import (
     PatientMedicationHistory, PatientConditionHistory,
     PatientSymptomHistory, VisitSummary
 )

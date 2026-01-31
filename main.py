@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 from backend.config import settings
 from backend.database import init_db
-from backend.api import documents, patients, query, analytics
+from backend.api import documents, patients, query
 from backend.api.enhanced_routes import router as enhanced_router
 from backend.api.patient_prescriptions import router as patient_prescriptions_router
 from backend.api.staff_api import router as staff_router
@@ -53,8 +53,6 @@ app = FastAPI(
     * **Temporal Reasoning** - Timeline building, medication tracking
     * **Knowledge Graph** - Patient-medication-condition relationships
     * **Conversational Querying** - Natural language medical queries
-    * **Audit & Compliance** - Complete audit trail
-    * **Analytics Dashboard** - Visualization and insights
     """,
     version="2.0.0",
     docs_url="/api/docs",
@@ -74,7 +72,6 @@ app.add_middleware(
 app.include_router(documents.router, prefix="/api")
 app.include_router(patients.router, prefix="/api")
 app.include_router(query.router, prefix="/api")
-app.include_router(analytics.router, prefix="/api")
 app.include_router(enhanced_router)  # Enhanced API v2 routes
 app.include_router(patient_prescriptions_router)  # Automated patient prescription routes
 app.include_router(staff_router)  # Staff portal API routes

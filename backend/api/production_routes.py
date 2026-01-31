@@ -670,53 +670,6 @@ async def acknowledge_alert(
     return {"message": "Alert acknowledged"}
 
 
-# ==================== Audit Trail ====================
-
-@router.get("/audit-trail")
-async def get_audit_trail(
-    request: Request,
-    resource_type: Optional[str] = None,
-    user_id: Optional[int] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    limit: int = Query(100, le=1000),
-    current_user: User = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    """Get audit trail (Admin only)"""
-    query = db.query(AuditLog)
-    
-    if resource_type:
-        query = query.filter(AuditLog.resource_type == resource_type)
-    
-    if user_id:
-        query = query.filter(AuditLog.user_id == user_id)
-    
-    if start_date:
-        query = query.filter(AuditLog.timestamp >= datetime.fromisoformat(start_date))
-    
-    if end_date:
-        query = query.filter(AuditLog.timestamp <= datetime.fromisoformat(end_date))
-    
-    logs = query.order_by(AuditLog.timestamp.desc()).limit(limit).all()
-    
-    return [
-        {
-            "id": l.id,
-            "timestamp": l.timestamp.isoformat(),
-            "username": l.username,
-            "role": l.user_role,
-            "action": l.action,
-            "resource_type": l.resource_type,
-            "resource_id": l.resource_id,
-            "description": l.description,
-            "ip_address": l.ip_address,
-            "success": l.success
-        }
-        for l in logs
-    ]
-
-
 # ==================== Dashboard Stats ====================
 
 @router.get("/dashboard/stats")

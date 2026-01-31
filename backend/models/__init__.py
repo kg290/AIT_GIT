@@ -7,3 +7,5 @@ from .medication import Medication, MedicationHistory, DrugInteraction
 from .medical_entity import MedicalEntity, Symptom, Diagnosis, Vital
 from .audit import AuditLog, Correction
 from .timeline import TimelineEvent
+from .patient_history import PatientMedicationHistory, PatientConditionHistory, PatientSymptomHistory, VisitSummary
+from .knowledge_graph import KnowledgeNode, KnowledgeEdge, NodeType, RelationshipType

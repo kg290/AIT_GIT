@@ -20,12 +20,6 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/data/medical_gateway.db"
     
-    # Neo4j Knowledge Graph
-    NEO4J_URI: str = "bolt://localhost:7687"
-    NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = "password"
-    USE_NEO4J: bool = False  # Set to True if Neo4j is available
-    
     # Google Cloud Vision
     GOOGLE_APPLICATION_CREDENTIALS: str = str(BASE_DIR / "kg-hackathon-e3f03b59d928.json")
     
