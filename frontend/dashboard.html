@@ -4217,68 +4217,80 @@ Aspirin, 81mg, once daily"></textarea>
         }
 
         function displayResults(data) {
-            document.getElementById('resultsContainer').classList.add('show');
+            const resultsContainer = document.getElementById('resultsContainer');
+            if (resultsContainer) {
+                resultsContainer.classList.add('show');
+            }
 
             // Review banner
             const reviewBanner = document.getElementById('reviewBanner');
-            if (data.needs_review) {
-                reviewBanner.classList.remove('hidden');
-                document.getElementById('reviewReason').textContent = 
-                    data.review_reasons?.join(', ') || 'Manual review recommended';
-            } else {
-                reviewBanner.classList.add('hidden');
+            if (reviewBanner) {
+                if (data.needs_review) {
+                    reviewBanner.classList.remove('hidden');
+                    const reviewReason = document.getElementById('reviewReason');
+                    if (reviewReason) {
+                        reviewReason.textContent = data.review_reasons?.join(', ') || 'Manual review recommended';
+                    }
+                } else {
+                    reviewBanner.classList.add('hidden');
+                }
             }
 
             // Safety alerts
             const alertsContainer = document.getElementById('alertsContainer');
-            alertsContainer.innerHTML = '';
+            if (alertsContainer) {
+                alertsContainer.innerHTML = '';
 
-            if (data.drug_interactions?.length > 0) {
-                data.drug_interactions.forEach(int => {
-                    const alertClass = int.severity === 'major' || int.severity === 'contraindicated' ? 'danger' : 'warning';
-                    alertsContainer.innerHTML += `
-                        <div class="alert-box ${alertClass}">
-                            <span class="alert-icon">${alertClass === 'danger' ? '🚨' : '⚠️'}</span>
-                            <div class="alert-content">
-                                <h5>Drug Interaction: ${int.drug1} + ${int.drug2}</h5>
-                                <p><strong>Severity:</strong> ${int.severity.toUpperCase()}</p>
-                                <p>${int.description}</p>
+                if (data.drug_interactions?.length > 0) {
+                    data.drug_interactions.forEach(int => {
+                        const alertClass = int.severity === 'major' || int.severity === 'contraindicated' ? 'danger' : 'warning';
+                        alertsContainer.innerHTML += `
+                            <div class="alert-box ${alertClass}">
+                                <span class="alert-icon">${alertClass === 'danger' ? '🚨' : '⚠️'}</span>
+                                <div class="alert-content">
+                                    <h5>Drug Interaction: ${int.drug1} + ${int.drug2}</h5>
+                                    <p><strong>Severity:</strong> ${int.severity.toUpperCase()}</p>
+                                    <p>${int.description}</p>
                             </div>
                         </div>
                     `;
-                });
-            }
+                    });
+                }
 
-            if (data.allergy_alerts?.length > 0) {
-                data.allergy_alerts.forEach(alert => {
-                    alertsContainer.innerHTML += `
-                        <div class="alert-box danger">
-                            <span class="alert-icon">🚨</span>
-                            <div class="alert-content">
-                                <h5>ALLERGY ALERT: ${alert.drug}</h5>
-                                <p>Patient is allergic to ${alert.allergen}</p>
-                                ${alert.cross_reactivity ? `<p><strong>Cross-reactivity:</strong> ${alert.cross_reactivity}</p>` : ''}
+                if (data.allergy_alerts?.length > 0) {
+                    data.allergy_alerts.forEach(alert => {
+                        alertsContainer.innerHTML += `
+                            <div class="alert-box danger">
+                                <span class="alert-icon">🚨</span>
+                                <div class="alert-content">
+                                    <h5>ALLERGY ALERT: ${alert.drug}</h5>
+                                    <p>Patient is allergic to ${alert.allergen}</p>
+                                    ${alert.cross_reactivity ? `<p><strong>Cross-reactivity:</strong> ${alert.cross_reactivity}</p>` : ''}
+                                </div>
                             </div>
-                        </div>
-                    `;
-                });
-            }
+                        `;
+                    });
+                }
 
-            if (data.safety_alerts?.length > 0) {
-                data.safety_alerts.forEach(alert => {
-                    alertsContainer.innerHTML += `
-                        <div class="alert-box warning">
-                            <span class="alert-icon">⚠️</span>
-                            <div class="alert-content">
-                                <h5>${alert}</h5>
+                if (data.safety_alerts?.length > 0) {
+                    data.safety_alerts.forEach(alert => {
+                        alertsContainer.innerHTML += `
+                            <div class="alert-box warning">
+                                <span class="alert-icon">⚠️</span>
+                                <div class="alert-content">
+                                    <h5>${alert}</h5>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                });
+                        `;
+                    });
+                }
             }
 
             // Prescription date
-            document.getElementById('prescriptionDate').textContent = data.prescription_date || 'Date not found';
+            const prescDateEl = document.getElementById('prescriptionDate');
+            if (prescDateEl) {
+                prescDateEl.textContent = data.prescription_date || 'Date not found';
+            }
 
             // Patient info
             setField('resultPatientName', data.patient_name);
@@ -4295,40 +4307,52 @@ Aspirin, 81mg, once daily"></textarea>
 
             // Diagnosis
             const diagnosisList = document.getElementById('diagnosisList');
-            diagnosisList.innerHTML = '';
-            if (data.diagnosis?.length > 0) {
-                data.diagnosis.forEach(d => {
-                    diagnosisList.innerHTML += `<span class="tag">${d}</span>`;
-                });
-                document.getElementById('diagnosisSection').style.display = 'block';
-            } else {
-                document.getElementById('diagnosisSection').style.display = 'none';
+            const diagnosisSection = document.getElementById('diagnosisSection');
+            if (diagnosisList) {
+                diagnosisList.innerHTML = '';
+                if (data.diagnosis?.length > 0) {
+                    data.diagnosis.forEach(d => {
+                        diagnosisList.innerHTML += `<span class="tag">${d}</span>`;
+                    });
+                    if (diagnosisSection) diagnosisSection.style.display = 'block';
+                } else {
+                    if (diagnosisSection) diagnosisSection.style.display = 'none';
+                }
             }
 
             // Vitals
             const vitalsGrid = document.getElementById('vitalsGrid');
-            vitalsGrid.innerHTML = '';
-            if (data.vitals && Object.keys(data.vitals).length > 0) {
-                for (const [key, value] of Object.entries(data.vitals)) {
-                    if (value) {
-                        vitalsGrid.innerHTML += `
-                            <div class="vital-item">
-                                <label>${formatVitalName(key)}</label>
-                                <span>${value}</span>
-                            </div>
-                        `;
+            const vitalsSection = document.getElementById('vitalsSection');
+            if (vitalsGrid) {
+                vitalsGrid.innerHTML = '';
+                if (data.vitals && Object.keys(data.vitals).length > 0) {
+                    for (const [key, value] of Object.entries(data.vitals)) {
+                        if (value) {
+                            vitalsGrid.innerHTML += `
+                                <div class="vital-item">
+                                    <label>${formatVitalName(key)}</label>
+                                    <span>${value}</span>
+                                </div>
+                            `;
+                        }
                     }
+                    if (vitalsSection) vitalsSection.style.display = 'block';
+                } else {
+                    if (vitalsSection) vitalsSection.style.display = 'none';
                 }
-                document.getElementById('vitalsSection').style.display = 'block';
-            } else {
-                document.getElementById('vitalsSection').style.display = 'none';
             }
 
             // Medications
             const medCount = data.medications?.length || 0;
             const medsList = document.getElementById('medicationsList');
-            medsList.innerHTML = '';
-            document.getElementById('medBadge').textContent = medCount + ' items';
+            const medBadge = document.getElementById('medBadge');
+            
+            if (medsList) {
+                medsList.innerHTML = '';
+            }
+            if (medBadge) {
+                medBadge.textContent = medCount + ' items';
+            }
 
             // Get interaction drugs for highlighting
             const interactionDrugs = new Set();
@@ -4337,7 +4361,7 @@ Aspirin, 81mg, once daily"></textarea>
                 interactionDrugs.add(i.drug2.toLowerCase());
             });
 
-            if (medCount > 0) {
+            if (medCount > 0 && medsList) {
                 data.medications.forEach((med) => {
                     const hasInteraction = interactionDrugs.has(med.name?.toLowerCase());
                     const statusBadge = hasInteraction 
@@ -4361,7 +4385,7 @@ Aspirin, 81mg, once daily"></textarea>
                         </tr>
                     `;
                 });
-            } else {
+            } else if (medsList) {
                 medsList.innerHTML = `
                     <tr>
                         <td colspan="6" style="text-align: center; color: var(--gray-500); padding: 2rem;">
@@ -4374,27 +4398,41 @@ Aspirin, 81mg, once daily"></textarea>
             // Confidence
             const confidence = Math.round((data.confidence || 0) * 100);
             const confidenceFill = document.getElementById('confidenceFill');
-            confidenceFill.style.width = confidence + '%';
-            confidenceFill.className = 'confidence-fill ' + (confidence >= 70 ? 'high' : confidence >= 40 ? 'medium' : 'low');
-            document.getElementById('confidenceText').textContent = confidence + '%';
+            const confidenceText = document.getElementById('confidenceText');
+            if (confidenceFill) {
+                confidenceFill.style.width = confidence + '%';
+                confidenceFill.className = 'confidence-fill ' + (confidence >= 70 ? 'high' : confidence >= 40 ? 'medium' : 'low');
+            }
+            if (confidenceText) {
+                confidenceText.textContent = confidence + '%';
+            }
 
             // Advice
             const adviceList = document.getElementById('adviceList');
-            adviceList.innerHTML = '';
-            if (data.advice?.length > 0) {
-                data.advice.forEach(a => {
-                    adviceList.innerHTML += `<span class="tag">${a}</span>`;
-                });
-                document.getElementById('adviceSection').style.display = 'block';
-            } else {
-                document.getElementById('adviceSection').style.display = 'none';
+            const adviceSection = document.getElementById('adviceSection');
+            if (adviceList) {
+                adviceList.innerHTML = '';
+                if (data.advice?.length > 0) {
+                    data.advice.forEach(a => {
+                        adviceList.innerHTML += `<span class="tag">${a}</span>`;
+                    });
+                    if (adviceSection) adviceSection.style.display = 'block';
+                } else {
+                    if (adviceSection) adviceSection.style.display = 'none';
+                }
             }
 
             // Follow-up
-            document.getElementById('followUpDate').textContent = data.follow_up || 'Not specified';
+            const followUpDate = document.getElementById('followUpDate');
+            if (followUpDate) {
+                followUpDate.textContent = data.follow_up || 'Not specified';
+            }
 
             // Raw text
-            document.getElementById('rawText').textContent = data.raw_ocr_text || 'No OCR text available';
+            const rawText = document.getElementById('rawText');
+            if (rawText) {
+                rawText.textContent = data.raw_ocr_text || 'No OCR text available';
+            }
 
             // Add to history
             addToHistory(data);
@@ -4402,6 +4440,7 @@ Aspirin, 81mg, once daily"></textarea>
 
         function setField(id, value) {
             const el = document.getElementById(id);
+            if (!el) return; // Guard against null elements
             if (value) {
                 el.textContent = value;
                 el.classList.remove('missing');

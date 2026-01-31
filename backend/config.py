@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/data/medical_gateway.db"
     
     # Google Cloud Vision
-    GOOGLE_APPLICATION_CREDENTIALS: str = str(BASE_DIR / "kg-hackathon-e3f03b59d928.json")
+    GOOGLE_APPLICATION_CREDENTIALS: str = str(BASE_DIR / "kg-hackathon-d645c475e738.json")
     
     # Google Gemini AI
     GEMINI_API_KEY: Optional[str] = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')

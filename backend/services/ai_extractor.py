@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-CREDENTIALS_FILE = BASE_DIR / "kg-hackathon-e3f03b59d928.json"
+CREDENTIALS_FILE = BASE_DIR / "kg-hackathon-d645c475e738.json"
 PROJECT_ID = "kg-hackathon"
 LOCATION = "us-central1"
 
